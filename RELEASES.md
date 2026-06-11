@@ -4,6 +4,24 @@ This file is the public release history for Feynman. Keep entries user-facing: w
 
 GitHub release notes are generated from the matching `## vX.Y.Z` section in this file.
 
+## v0.3.0 - 2026-06-11
+
+### Pi Runtime 0.79 (breaking: Node floor)
+
+- Upgraded the Pi runtime from 0.74.2 to 0.79.1 across all four packages (`pi-coding-agent`, `pi-agent-core`, `pi-ai`, `pi-tui`). Highlights inherited from Pi 0.75–0.79: project trust prompts for `.pi` resources (headless runs default to untrusted, so nothing blocks), `--session-id` / `--exclude-tools` / `--approve` CLI flags, supply-chain-hardened publishes with shrinkwrapped exact deps, new built-in models (Claude Fable 5 with adaptive thinking, Claude Opus 4.8, MiniMax-M3, NVIDIA NIM providers), and IME cursor fixes.
+- **Supported Node is now 22.19.0 through 25.x** (Pi 0.79 requires ≥22.19; Node 20 reached end-of-life in April 2026). The installer-bundled runtime is unaffected; npm installs on Node 20/21 keep working on the 0.2.x line.
+- Updated the OAuth login flow for Pi's new device-code and selector callbacks, and rebuilt the editor render patch for pi-tui's Unicode rework — including a guard that leaves the editor untouched on unknown future layouts instead of producing a broken render.
+- Model recommendations now surface the newest catalog entries (Claude Opus 4.8 on OpenCode Zen, MiniMax-M3).
+
+### Removed
+
+- Deleted the npm `--legacy-peer-deps` runtime patch — Pi 0.79 ships that behavior upstream.
+- Dropped the unused `dotenv` dependency; `undici` and `@earendil-works/pi-agent-core`/`pi-tui` are now declared directly instead of relying on transitive resolution.
+
+### Validation
+
+- 192 tests, typecheck, build, and pack on Node 22/24/25; live smokes on Pi 0.79.1 for alpha search (10 results), parallel `web_search` with `includeContent`, subagent launches, and direct render-harness checks of the patched editor (placeholder, text, narrow, unfocused). The end-to-end install workflow now also covers Node 22.
+
 ## v0.2.61 - 2026-06-11
 
 ### Windows

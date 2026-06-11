@@ -5,7 +5,6 @@ import { spawnSync } from "node:child_process";
 
 import { patchPiAgentCoreSource } from "./lib/pi-agent-core-patch.mjs";
 import { patchPiExtensionLoaderSource } from "./lib/pi-extension-loader-patch.mjs";
-import { patchPiPackageManagerSource } from "./lib/pi-package-manager-patch.mjs";
 import { patchPiEditorSource, patchPiInteractiveThemeSource, patchPiTuiSource } from "./lib/pi-tui-patch.mjs";
 import { PI_WEB_ACCESS_PATCH_TARGETS, patchPiWebAccessSource } from "./lib/pi-web-access-patch.mjs";
 import { PI_SUBAGENTS_PATCH_TARGETS, patchPiSubagentsSource, stripPiSubagentBuiltinModelSource } from "./lib/pi-subagents-patch.mjs";
@@ -23,7 +22,7 @@ const workspacePackageJsonPath = resolve(workspaceDir, "package.json");
 const workspaceNpmConfigPath = resolve(workspaceDir, ".npmrc");
 const workspaceArchivePath = resolve(feynmanDir, "runtime-workspace.tgz");
 const PRUNE_VERSION = 6;
-const PI_RUNTIME_FALLBACK_VERSION = "0.74.2";
+const PI_RUNTIME_FALLBACK_VERSION = "0.79.1";
 const PINNED_RUNTIME_PACKAGES = [
 	"@earendil-works/pi-agent-core",
 	"@earendil-works/pi-ai",
@@ -296,10 +295,6 @@ function patchBundledPiExtensionLoader() {
 	return patchScopedPiWorkspaceFile("pi-coding-agent", "dist/core/extensions/loader.js", patchPiExtensionLoaderSource);
 }
 
-function patchBundledPiPackageManager() {
-	return patchScopedPiWorkspaceFile("pi-coding-agent", "dist/core/package-manager.js", patchPiPackageManagerSource);
-}
-
 function patchBundledPiInteractiveTheme() {
 	return patchScopedPiWorkspaceFile("pi-coding-agent", "dist/modes/interactive/theme/theme.js", patchPiInteractiveThemeSource);
 }
@@ -343,7 +338,6 @@ function patchBundledRuntime() {
 	let changed = false;
 	changed = patchBundledPiAgentCore() || changed;
 	changed = patchBundledPiExtensionLoader() || changed;
-	changed = patchBundledPiPackageManager() || changed;
 	changed = patchBundledPiInteractiveTheme() || changed;
 	changed = patchBundledPiTui() || changed;
 	changed = patchBundledPiWebAccess() || changed;

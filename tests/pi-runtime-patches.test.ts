@@ -109,15 +109,6 @@ export function getSettingsListTheme() {
 }
 `;
 
-const PACKAGE_MANAGER_SOURCE = `
-export class DefaultPackageManager {
-    async install(specs) {
-        await this.exec("npm", ["install", "-g", ...specs]);
-        await this.exec("npm", ["install", ...specs, "--prefix", installRoot]);
-    }
-}
-`;
-
 const ALPHA_SEARCH_SOURCE = `
 function getErrorMessage(err) {
   return err instanceof Error ? err.message : String(err);
@@ -177,19 +168,16 @@ test("patchPiRuntimeNodeModules patches installed Pi runtime files", async () =>
 	const tuiPath = join(appRoot, "node_modules", "@earendil-works", "pi-tui", "dist", "tui.js");
 	const editorPath = join(appRoot, "node_modules", "@earendil-works", "pi-tui", "dist", "components", "editor.js");
 	const themePath = join(appRoot, "node_modules", "@earendil-works", "pi-coding-agent", "dist", "modes", "interactive", "theme", "theme.js");
-	const packageManagerPath = join(appRoot, "node_modules", "@earendil-works", "pi-coding-agent", "dist", "core", "package-manager.js");
 	const alphaSearchPath = join(appRoot, "node_modules", "@companion-ai", "alpha-hub", "src", "lib", "alphaxiv.js");
 	await mkdir(dirname(agentLoopPath), { recursive: true });
 	await mkdir(dirname(tuiPath), { recursive: true });
 	await mkdir(dirname(editorPath), { recursive: true });
 	await mkdir(dirname(themePath), { recursive: true });
-	await mkdir(dirname(packageManagerPath), { recursive: true });
 	await mkdir(dirname(alphaSearchPath), { recursive: true });
 	writeFileSync(agentLoopPath, SOURCE, "utf8");
 	writeFileSync(tuiPath, TUI_SOURCE, "utf8");
 	writeFileSync(editorPath, EDITOR_SOURCE, "utf8");
 	writeFileSync(themePath, THEME_SOURCE, "utf8");
-	writeFileSync(packageManagerPath, PACKAGE_MANAGER_SOURCE, "utf8");
 	writeFileSync(alphaSearchPath, ALPHA_SEARCH_SOURCE, "utf8");
 
 	assert.equal(patchPiRuntimeNodeModules(appRoot), true);
@@ -205,7 +193,6 @@ test("patchPiRuntimeNodeModules patches installed Pi runtime files", async () =>
 	assert.doesNotMatch(patchedTui, /throw new Error\(errorMsg\)/);
 	assert.match(readFileSync(editorPath, "utf8"), /displayText = styleInput\(before\) \+ marker \+ styleInput\(after\)/);
 	assert.match(readFileSync(themePath, "utf8"), /input: \(text\) => theme\.fg\("text", text\)/);
-	assert.match(readFileSync(packageManagerPath, "utf8"), /"--legacy-peer-deps", "-g"/);
 	assert.match(readFileSync(alphaSearchPath, "utf8"), /async function searchRestFast/);
 	assert.equal(patchPiRuntimeNodeModules(appRoot), false);
 });

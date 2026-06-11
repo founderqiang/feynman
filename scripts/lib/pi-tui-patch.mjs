@@ -35,10 +35,19 @@ const OVERFLOW_TRUNCATE_BLOCK = `            let line = newLines[i];
             }
             buffer += line;`;
 
-const EDITOR_IMPORT_ORIGINAL =
-	'import { getSegmenter, isPunctuationChar, isWhitespaceChar, truncateToWidth, visibleWidth } from "../utils.js";';
-const EDITOR_IMPORT_REPLACEMENT =
-	'import { applyBackgroundToLine, getSegmenter, isPunctuationChar, isWhitespaceChar, truncateToWidth, visibleWidth } from "../utils.js";';
+// Two known upstream layouts: pi-tui <=0.75 and the 0.76+ Unicode
+// word-navigation rework. Both need applyBackgroundToLine added for the
+// background-fill render below.
+const EDITOR_IMPORT_PAIRS = [
+	[
+		'import { getSegmenter, isPunctuationChar, isWhitespaceChar, truncateToWidth, visibleWidth } from "../utils.js";',
+		'import { applyBackgroundToLine, getSegmenter, isPunctuationChar, isWhitespaceChar, truncateToWidth, visibleWidth } from "../utils.js";',
+	],
+	[
+		'import { getGraphemeSegmenter, getWordSegmenter, isWhitespaceChar, truncateToWidth, visibleWidth } from "../utils.js";',
+		'import { applyBackgroundToLine, getGraphemeSegmenter, getWordSegmenter, isWhitespaceChar, truncateToWidth, visibleWidth } from "../utils.js";',
+	],
+];
 
 const EDITOR_RENDER_BLOCK = [
 	"    render(width) {",
@@ -102,8 +111,9 @@ const EDITOR_RENDER_BLOCK = [
 	"            result.push(horizontal.repeat(width));",
 	"        }",
 	"        // Render each visible layout line",
-	"        // Emit hardware cursor marker only when focused and not showing autocomplete",
-	"        const emitCursorMarker = this.focused && !this.autocompleteState;",
+	"        // Emit hardware cursor marker when focused so the TUI can position the",
+	"        // hardware cursor for IME candidate windows even while autocomplete is open.",
+	"        const emitCursorMarker = this.focused;",
 	"        const showPlaceholder = this.state.lines.length === 1 &&",
 	'            this.state.lines[0] === "" &&',
 	'            typeof this.theme.placeholderText === "string" &&',
@@ -198,11 +208,20 @@ export function patchPiTuiSource(source) {
 
 export function patchPiEditorSource(source) {
 	let patched = source;
-	if (patched.includes(EDITOR_IMPORT_ORIGINAL)) {
-		patched = patched.replace(EDITOR_IMPORT_ORIGINAL, EDITOR_IMPORT_REPLACEMENT);
+	let importsPatched = patched.includes("applyBackgroundToLine,");
+	for (const [original, replacement] of EDITOR_IMPORT_PAIRS) {
+		if (patched.includes(original)) {
+			patched = patched.replace(original, replacement);
+			importsPatched = true;
+		}
 	}
 	if (patched.includes("const styleInput = typeof this.theme.input")) {
 		return patched;
+	}
+	if (!importsPatched) {
+		// Unknown upstream layout: leave render() untouched rather than emit a
+		// body that references applyBackgroundToLine without importing it.
+		return source;
 	}
 	return patched.replace(
 		/    render\(width\) \{[\s\S]*?\n    handleInput\(data\) \{/m,

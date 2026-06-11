@@ -81,7 +81,7 @@ test("chooseRecommendedModel prefers OpenCode Zen Claude when OpenCode is the au
 
 		const recommendation = chooseRecommendedModel(authPath);
 
-		assert.equal(recommendation?.spec, "opencode/claude-opus-4-7");
+		assert.equal(recommendation?.spec, "opencode/claude-opus-4-8");
 	});
 });
 
@@ -226,7 +226,7 @@ test("buildModelStatusSnapshotFromRecords flags an invalid current model and sug
 	assert.ok(snapshot.guidance.some((line) => line.includes("Configured default model is unavailable")));
 });
 
-test("chooseRecommendedModel prefers MiniMax M2.7 over highspeed when that is the authenticated provider", () => {
+test("chooseRecommendedModel prefers the newest MiniMax over highspeed when that is the authenticated provider", () => {
 	withoutModelEnv(() => {
 		const authPath = createAuthPath({
 			minimax: { type: "api_key", key: "minimax-test-key" },
@@ -234,7 +234,7 @@ test("chooseRecommendedModel prefers MiniMax M2.7 over highspeed when that is th
 
 		const recommendation = chooseRecommendedModel(authPath);
 
-		assert.equal(recommendation?.spec, "minimax/MiniMax-M2.7");
+		assert.equal(recommendation?.spec, "minimax/MiniMax-M3");
 	});
 });
 

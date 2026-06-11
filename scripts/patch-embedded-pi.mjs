@@ -11,7 +11,6 @@ import { patchPiAgentCoreSource } from "./lib/pi-agent-core-patch.mjs";
 import { patchPiExtensionLoaderSource } from "./lib/pi-extension-loader-patch.mjs";
 import { resolveAdjacentNpmCommand } from "./lib/npm-command.mjs";
 import { patchPiModelRegistrySource } from "./lib/pi-model-registry-patch.mjs";
-import { patchPiPackageManagerSource } from "./lib/pi-package-manager-patch.mjs";
 import { patchPiEditorSource, patchPiInteractiveThemeSource, patchPiTuiSource } from "./lib/pi-tui-patch.mjs";
 import { PI_WEB_ACCESS_PATCH_TARGETS, patchPiWebAccessSource } from "./lib/pi-web-access-patch.mjs";
 import { PI_SUBAGENTS_PATCH_TARGETS, patchPiSubagentsSource, stripPiSubagentBuiltinModelSource } from "./lib/pi-subagents-patch.mjs";
@@ -73,7 +72,6 @@ const bunCliPath = piPackageRoot ? resolve(piPackageRoot, "dist", "bun", "cli.js
 const interactiveModePath = piPackageRoot ? resolve(piPackageRoot, "dist", "modes", "interactive", "interactive-mode.js") : null;
 const interactiveThemePath = piPackageRoot ? resolve(piPackageRoot, "dist", "modes", "interactive", "theme", "theme.js") : null;
 const extensionLoaderPath = piPackageRoot ? resolve(piPackageRoot, "dist", "core", "extensions", "loader.js") : null;
-const packageManagerPath = piPackageRoot ? resolve(piPackageRoot, "dist", "core", "package-manager.js") : null;
 const modelRegistryPath = piPackageRoot ? resolve(piPackageRoot, "dist", "core", "model-registry.js") : null;
 const agentLoopPath = piAgentCoreRoot ? resolve(piAgentCoreRoot, "dist", "agent-loop.js") : null;
 const tuiPath = piTuiRoot ? resolve(piTuiRoot, "dist", "tui.js") : null;
@@ -105,12 +103,6 @@ const workspaceExtensionLoaderPath = resolveWorkspacePiFile(
 	"core",
 	"extensions",
 	"loader.js",
-);
-const workspacePackageManagerPath = resolveWorkspacePiFile(
-	"pi-coding-agent",
-	"dist",
-	"core",
-	"package-manager.js",
 );
 const piSubagentsRoot = resolve(workspaceRoot, "pi-subagents");
 const sessionSearchIndexerPath = resolve(
@@ -741,14 +733,6 @@ for (const loaderPath of [extensionLoaderPath, workspaceExtensionLoaderPath].fil
 	}
 }
 
-for (const entryPath of [packageManagerPath, workspacePackageManagerPath].filter(Boolean)) {
-	if (!existsSync(entryPath)) continue;
-	const source = readFileSync(entryPath, "utf8");
-	const patched = patchPiPackageManagerSource(source);
-	if (patched !== source) {
-		writeFileSync(entryPath, patched, "utf8");
-	}
-}
 
 const workspaceModelRegistryPath = resolveWorkspacePiFile("pi-coding-agent", "dist", "core", "model-registry.js");
 for (const entryPath of [modelRegistryPath, workspaceModelRegistryPath].filter(Boolean)) {

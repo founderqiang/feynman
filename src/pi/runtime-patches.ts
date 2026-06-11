@@ -5,7 +5,6 @@ import { patchAlphaHubAuthSource } from "../../scripts/lib/alpha-hub-auth-patch.
 import { patchAlphaHubSearchResultsSource, patchAlphaHubSearchSource } from "../../scripts/lib/alpha-hub-search-patch.mjs";
 import { patchPiAgentCoreSource } from "../../scripts/lib/pi-agent-core-patch.mjs";
 import { patchPiModelRegistrySource } from "../../scripts/lib/pi-model-registry-patch.mjs";
-import { patchPiPackageManagerSource } from "../../scripts/lib/pi-package-manager-patch.mjs";
 import { PI_SUBAGENTS_PATCH_TARGETS, patchPiSubagentsSource } from "../../scripts/lib/pi-subagents-patch.mjs";
 import { patchPiEditorSource, patchPiInteractiveThemeSource, patchPiTuiSource } from "../../scripts/lib/pi-tui-patch.mjs";
 import { PI_WEB_ACCESS_PATCH_TARGETS, patchPiWebAccessSource } from "../../scripts/lib/pi-web-access-patch.mjs";
@@ -85,12 +84,6 @@ export function patchPiRuntimeNodeModules(appRoot: string): boolean {
 			"pi-coding-agent",
 			"dist/modes/interactive/theme/theme.js",
 			patchPiInteractiveThemeSource,
-		) || changed;
-		changed = patchScopedPiPackageFileIfPresent(
-			nodeModulesPath,
-			"pi-coding-agent",
-			"dist/core/package-manager.js",
-			patchPiPackageManagerSource,
 		) || changed;
 		changed = patchScopedPiPackageFileIfPresent(
 			nodeModulesPath,

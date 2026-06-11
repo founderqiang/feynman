@@ -923,6 +923,17 @@ export async function loginModelProvider(authPath: string, providerId?: string, 
 		onManualCodeInput: async () => {
 			return promptText("Paste redirect URL or auth code");
 		},
+		onDeviceCode: (info: { userCode: string; verificationUri: string }) => {
+			printSection(`Login: ${provider.name ?? provider.id}`);
+			printInfo(`Visit ${info.verificationUri} and enter code: ${info.userCode}`);
+			openUrl(info.verificationUri);
+		},
+		onSelect: async (prompt: { message: string; options: Array<{ id: string; label: string }> }) => {
+			return promptSelect(
+				prompt.message,
+				prompt.options.map((option) => ({ value: option.id, label: option.label })),
+			);
+		},
 		signal: abortController.signal,
 	});
 
