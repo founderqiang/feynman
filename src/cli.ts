@@ -1,4 +1,11 @@
-import "dotenv/config";
+import { loadEnvFile } from "node:process";
+
+// Native replacement for dotenv/config: load a cwd .env when present.
+try {
+	loadEnvFile();
+} catch {
+	// No .env in the working directory - nothing to load.
+}
 
 import { existsSync, readFileSync } from "node:fs";
 import { dirname, resolve } from "node:path";
