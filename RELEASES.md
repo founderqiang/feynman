@@ -4,6 +4,20 @@ This file is the public release history for Feynman. Keep entries user-facing: w
 
 GitHub release notes are generated from the matching `## vX.Y.Z` section in this file.
 
+## v0.2.60 - 2026-06-11
+
+### Node Support
+
+- Feynman now supports Node.js 25 (#177). The full test suite and live CLI flows (launch, update, alpha search, parallel web search) were validated on Node 20, 24, and 25; the supported range is now 20.19.0 through 25.x.
+
+### Runtime Reliability
+
+- Fixed the cryptic `Cannot convert argument to a ByteString because the character at index N has a value of M` crash (#171). It fires when a custom provider in `models.json` has a header value or API key containing characters above U+00FF (e.g. Chinese text) — HTTP headers cannot carry them. Feynman now reports exactly which provider and header is at fault and how to fix it, instead of an unattributed undici error.
+
+### Validation
+
+- Added a multi-OS end-to-end install workflow that exercises the published package on Windows, Linux, and macOS runners (Node 24 and 25): global install, version/update/package flows, launch-time patch assertions for the subagent spawn (#172) and structured search parser (#167) fixes, plus live model and subagent smokes.
+
 ## v0.2.59 - 2026-06-11
 
 ### Research Tools

@@ -1,11 +1,11 @@
 {
   "name": "@companion-ai/feynman",
-  "version": "0.2.59",
+  "version": "0.2.60",
   "description": "Research-first CLI agent built on Pi and alphaXiv",
   "license": "MIT",
   "type": "module",
   "engines": {
-    "node": ">=20.19.0 <25"
+    "node": ">=20.19.0 <26"
   },
   "bin": {
     "feynman": "bin/feynman.js"

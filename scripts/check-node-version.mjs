@@ -1,5 +1,5 @@
 const MIN_NODE_VERSION = "20.19.0";
-const MAX_NODE_MAJOR = 24;
+const MAX_NODE_MAJOR = 25;
 const PREFERRED_NODE_MAJOR = 24;
 
 function parseNodeVersion(version) {

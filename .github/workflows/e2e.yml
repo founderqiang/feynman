@@ -1,0 +1,137 @@
+name: End-to-End Install Tests
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "Published version to test (defaults to latest)"
+        required: false
+        default: "latest"
+
+env:
+  FEYNMAN_VERSION_INPUT: ${{ github.event.inputs.version || 'latest' }}
+
+jobs:
+  install-e2e:
+    name: e2e (${{ matrix.os }}, node ${{ matrix.node }})
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-latest
+            node: 24
+          - os: macos-14
+            node: 24
+          - os: windows-latest
+            node: 24
+          - os: windows-latest
+            node: 25
+          - os: ubuntu-latest
+            node: 25
+    runs-on: ${{ matrix.os }}
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - uses: actions/setup-node@v6
+        with:
+          node-version: ${{ matrix.node }}
+
+      - name: Install published package globally
+        # Issue #177 regression: this must succeed on every supported Node,
+        # including the newest major — a failing preinstall used to roll the
+        # install back and pin users to the previous version.
+        run: npm install -g "@companion-ai/feynman@${FEYNMAN_VERSION_INPUT}"
+
+      - name: feynman --version
+        run: |
+          set -x
+          feynman --version
+          installed="$(feynman --version | tail -1)"
+          expected="$(npm view "@companion-ai/feynman@${FEYNMAN_VERSION_INPUT}" version | tail -1)"
+          if [ "$installed" != "$expected" ]; then
+            echo "version mismatch: installed=$installed expected=$expected" >&2
+            exit 1
+          fi
+
+      - name: feynman packages list / update / search status
+        run: |
+          feynman packages list
+          feynman update
+          feynman search status
+
+      - name: Assert pi-subagents spawn patch applied (issue 172)
+        # Running the CLI above applies launch-time patches to the bundled
+        # workspace. The patched pi-spawn must prefer FEYNMAN_PI_CLI_PATH so
+        # subagents never treat --mode as a module path.
+        run: |
+          node -e '
+            const { execSync } = require("node:child_process");
+            const { existsSync, readFileSync } = require("node:fs");
+            const { join } = require("node:path");
+            const root = execSync("npm root -g").toString().trim();
+            const pkg = join(root, "@companion-ai", "feynman");
+            const candidates = [
+              join(pkg, ".feynman", "npm", "node_modules", "pi-subagents", "src", "runs", "shared", "pi-spawn.ts"),
+              join(pkg, ".feynman", "npm", "node_modules", "pi-subagents", "pi-spawn.ts"),
+            ];
+            const found = candidates.find((p) => existsSync(p));
+            if (!found) throw new Error("pi-spawn source not found under " + pkg);
+            const source = readFileSync(found, "utf8");
+            if (!source.includes("FEYNMAN_PI_CLI_PATH")) {
+              throw new Error("pi-spawn patch NOT applied: " + found);
+            }
+            console.log("pi-spawn patch applied:", found);
+          '
+
+      - name: Assert alpha-hub structured search parser applied (issue 167)
+        run: |
+          node -e '
+            const { execSync } = require("node:child_process");
+            const { existsSync, readFileSync } = require("node:fs");
+            const { join } = require("node:path");
+            const root = execSync("npm root -g").toString().trim();
+            const pkg = join(root, "@companion-ai", "feynman");
+            const indexPath = join(pkg, ".feynman", "npm", "node_modules", "@companion-ai", "alpha-hub", "src", "lib", "index.js");
+            if (!existsSync(indexPath)) throw new Error("alpha-hub index.js not found: " + indexPath);
+            if (!readFileSync(indexPath, "utf8").includes("parseStructuredSearchResults")) {
+              throw new Error("structured search parser patch NOT applied");
+            }
+            console.log("alpha-hub structured parser applied");
+          '
+
+      - name: Configure model auth for live smokes
+        if: ${{ secrets.OPENAI_API_KEY != '' }}
+        env:
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+        run: |
+          export FEYNMAN_HOME="$RUNNER_TEMP/feynman-home"
+          mkdir -p "$FEYNMAN_HOME/.feynman/agent"
+          node -e '
+            const { writeFileSync, mkdirSync } = require("node:fs");
+            const { join } = require("node:path");
+            const home = join(process.env.RUNNER_TEMP, "feynman-home", ".feynman", "agent");
+            mkdirSync(home, { recursive: true });
+            writeFileSync(join(home, "auth.json"), JSON.stringify({ openai: { type: "key", key: process.env.OPENAI_API_KEY } }));
+            writeFileSync(join(home, "settings.json"), JSON.stringify({ defaultProvider: "openai", defaultModel: "gpt-4.1-mini", quietStartup: true }));
+          '
+          echo "FEYNMAN_HOME=$RUNNER_TEMP/feynman-home" >> "$GITHUB_ENV"
+
+      - name: Live model smoke (one-shot prompt)
+        if: env.FEYNMAN_HOME != ''
+        run: |
+          feynman --mode json --prompt 'Reply with exactly CI_OK and nothing else. Do not call any tools.' > smoke.log 2>&1 || { tail -50 smoke.log; exit 1; }
+          grep -q "CI_OK" smoke.log
+          echo "model smoke ok"
+
+      - name: Live subagent smoke (issue 172 end-to-end)
+        if: env.FEYNMAN_HOME != ''
+        run: |
+          feynman --mode json --prompt 'Use the subagent tool to run the "researcher" agent with the task: Reply with the single word PONG and stop. After the subagent returns, reply with exactly SUBAGENT_DONE.' > subagent.log 2>&1 || { tail -80 subagent.log; exit 1; }
+          if grep -q "Cannot find module" subagent.log; then
+            echo "subagent spawn regression detected:" >&2
+            grep -n "Cannot find module" subagent.log >&2
+            exit 1
+          fi
+          grep -q "SUBAGENT_DONE" subagent.log
+          echo "subagent smoke ok"

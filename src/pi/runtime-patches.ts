@@ -4,6 +4,7 @@ import { resolve } from "node:path";
 import { patchAlphaHubAuthSource } from "../../scripts/lib/alpha-hub-auth-patch.mjs";
 import { patchAlphaHubSearchResultsSource, patchAlphaHubSearchSource } from "../../scripts/lib/alpha-hub-search-patch.mjs";
 import { patchPiAgentCoreSource } from "../../scripts/lib/pi-agent-core-patch.mjs";
+import { patchPiModelRegistrySource } from "../../scripts/lib/pi-model-registry-patch.mjs";
 import { patchPiPackageManagerSource } from "../../scripts/lib/pi-package-manager-patch.mjs";
 import { PI_SUBAGENTS_PATCH_TARGETS, patchPiSubagentsSource } from "../../scripts/lib/pi-subagents-patch.mjs";
 import { patchPiEditorSource, patchPiInteractiveThemeSource, patchPiTuiSource } from "../../scripts/lib/pi-tui-patch.mjs";
@@ -90,6 +91,12 @@ export function patchPiRuntimeNodeModules(appRoot: string): boolean {
 			"pi-coding-agent",
 			"dist/core/package-manager.js",
 			patchPiPackageManagerSource,
+		) || changed;
+		changed = patchScopedPiPackageFileIfPresent(
+			nodeModulesPath,
+			"pi-coding-agent",
+			"dist/core/model-registry.js",
+			patchPiModelRegistrySource,
 		) || changed;
 		changed = patchFileIfPresent(
 			resolve(nodeModulesPath, "@companion-ai", "alpha-hub", "src", "lib", "auth.js"),

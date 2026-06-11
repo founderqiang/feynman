@@ -1,5 +1,5 @@
 export const MIN_NODE_VERSION = "20.19.0";
-export const MAX_NODE_MAJOR = 24;
+export const MAX_NODE_MAJOR = 25;
 export const PREFERRED_NODE_MAJOR = 24;
 
 type ParsedNodeVersion = {

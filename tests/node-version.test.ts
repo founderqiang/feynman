@@ -38,8 +38,9 @@ test("unsupported version guidance reports the detected version", () => {
 });
 
 test("unsupported version guidance explains upper-bound failures", () => {
-	const lines = getUnsupportedNodeVersionLines("25.1.0");
+	const tooNewVersion = `${MAX_NODE_MAJOR + 1}.1.0`;
+	const lines = getUnsupportedNodeVersionLines(tooNewVersion);
 
-	assert.equal(lines[0], `feynman supports Node.js ${MIN_NODE_VERSION} through ${MAX_NODE_MAJOR}.x (detected 25.1.0).`);
+	assert.equal(lines[0], `feynman supports Node.js ${MIN_NODE_VERSION} through ${MAX_NODE_MAJOR}.x (detected ${tooNewVersion}).`);
 	assert.ok(lines.some((line) => line.includes("newer Node release is not supported yet")));
 });
