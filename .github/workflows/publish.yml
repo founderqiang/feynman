@@ -137,7 +137,7 @@ jobs:
           Expand-Archive -LiteralPath "dist/release/feynman-$version-win32-x64.zip" -DestinationPath $tmp -Force
           $bundleRoot = Join-Path $tmp "feynman-$version-win32-x64"
           & (Join-Path $bundleRoot "feynman.cmd") --help | Select-Object -First 20
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: native-${{ matrix.id }}
           path: dist/release/*
@@ -152,7 +152,7 @@ jobs:
       contents: write
     steps:
       - uses: actions/checkout@v6
-      - uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@v8
         with:
           path: release-assets
           merge-multiple: true
