@@ -5,7 +5,7 @@ section: Workflows
 order: 8
 ---
 
-The draft writing workflow generates structured academic-style documents from your research findings. It uses the writer agent to produce well-organized prose with proper citations, sections, and formatting suitable for papers, reports, or blog posts.
+The draft writing workflow generates structured academic-style documents from your research findings. It uses the writer agent to produce well-organized prose with proper citations, sections, and formatting suitable for papers, technical reports, or internal research notes.
 
 ## Usage
 
@@ -50,4 +50,4 @@ The draft follows standard academic structure:
 
 ## Preview and iteration
 
-After generating the draft, use `/preview` to render it as HTML or PDF with proper formatting, math rendering, and typography. You can iterate on the draft by asking Feynman to revise specific sections, add more detail, or restructure the argument.
+After generating the draft, use `/preview` when a preview command is visible, or render it with shell tools such as `pandoc`, to review HTML/PDF formatting, math rendering, and typography. You can iterate on the draft by asking Feynman to revise specific sections, add more detail, or restructure the argument.

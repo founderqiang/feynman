@@ -10,6 +10,7 @@ import { printInfo, printSection, printSuccess, printWarning } from "../ui/termi
 import {
 	buildModelStatusSnapshotFromRecords,
 	chooseRecommendedModel,
+	getAuthenticatedModelRecords,
 	getAvailableModelRecords,
 	getSupportedModelRecords,
 	type ModelStatusSnapshot,
@@ -22,7 +23,7 @@ const exec = promisify(execCallback);
 function collectModelStatus(settingsPath: string, authPath: string): ModelStatusSnapshot {
 	return buildModelStatusSnapshotFromRecords(
 		getSupportedModelRecords(authPath),
-		getAvailableModelRecords(authPath),
+		getAuthenticatedModelRecords(authPath),
 		getCurrentModelSpec(settingsPath),
 	);
 }
@@ -466,7 +467,7 @@ async function promptLiteLlmProviderSetup(): Promise<CustomProviderSetup | undef
 		? await bestEffortFetchOpenAiModelIds(baseUrl, resolvedKey, authHeader)
 		: undefined;
 
-	let modelIdsDefault = "gpt-4";
+	let modelIdsDefault = "your-litellm-model";
 	if (detectedModelIds && detectedModelIds.length > 0) {
 		const sample = detectedModelIds.slice(0, 10).join(", ");
 		printInfo(`Detected LiteLLM models: ${sample}${detectedModelIds.length > 10 ? ", ..." : ""}`);
@@ -851,7 +852,7 @@ export function printModelList(settingsPath: string, authPath: string): void {
 
 export async function authenticateModelProvider(authPath: string, settingsPath?: string): Promise<boolean> {
 	const choices = [
-		"OAuth login (recommended: ChatGPT Plus/Pro, Claude Pro/Max, Copilot, ...)",
+		"OAuth login (recommended: ChatGPT, Claude Max, Copilot, ...)",
 		"API key or custom provider (OpenAI, Anthropic, Google, local/self-hosted, ...)",
 		"Cancel",
 	];
@@ -986,7 +987,7 @@ export function setDefaultModelSpec(settingsPath: string, authPath: string, spec
 	settings.defaultProvider = provider;
 	settings.defaultModel = modelId;
 	writeFileSync(settingsPath, JSON.stringify(settings, null, 2) + "\n", "utf8");
-	printSuccess(`Default model set to ${resolvedSpec}`);
+	printSuccess(`Non-Pro default model set to ${resolvedSpec}`);
 }
 
 export async function runModelSetup(settingsPath: string, authPath: string): Promise<void> {
@@ -994,7 +995,7 @@ export async function runModelSetup(settingsPath: string, authPath: string): Pro
 
 	while (status.availableModels.length === 0) {
 		const choices = [
-			"OAuth login (recommended: ChatGPT Plus/Pro, Claude Pro/Max, Copilot, ...)",
+			"OAuth login (recommended: ChatGPT, Claude Max, Copilot, ...)",
 			"API key or custom provider (OpenAI, Anthropic, ZAI, Kimi, MiniMax, ...)",
 			"Cancel",
 		];

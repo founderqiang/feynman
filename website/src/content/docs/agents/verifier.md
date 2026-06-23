@@ -21,9 +21,9 @@ The verifier follows a systematic process for each claim it checks:
 2. **Locate the relevant section** -- Find where the source addresses the claim
 3. **Compare** -- Check whether the source supports the claim as stated
 4. **Classify** -- Mark the claim as verified, unsupported, overstated, or contradicted
-5. **Document** -- Record the evidence with exact quotes and locations
+5. **Document** -- Record the evidence with source locations and short quotes only when needed
 
-This process is deterministic and traceable. Every verification result includes the specific passage or code that was checked, making it easy to audit the verifier's work.
+This process is traceable. Completed verification notes identify the specific passage or code that was checked, making it easy to audit the verifier's work.
 
 ## Confidence and limitations
 

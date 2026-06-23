@@ -5,6 +5,7 @@ export const CORE_PACKAGE_SOURCES = [
 	"npm:pi-subagents",
 	"npm:pi-docparser",
 	"npm:pi-web-access",
+	"npm:pi-otel",
 ] as const;
 
 const LEGACY_CORE_PACKAGE_SOURCES = [
@@ -29,6 +30,16 @@ const LEGACY_TELEMETRY_CORE_PACKAGE_SOURCES = [
 	"npm:@devkade/pi-opentelemetry",
 ] as const;
 
+const LEGACY_CORE_WITH_PI_OTEL_PACKAGE_SOURCES = [
+	...LEGACY_CORE_PACKAGE_SOURCES,
+	"npm:pi-otel",
+] as const;
+
+const LEGACY_TELEMETRY_WITH_PI_OTEL_PACKAGE_SOURCES = [
+	...LEGACY_CORE_WITH_PI_OTEL_PACKAGE_SOURCES,
+	"npm:@devkade/pi-opentelemetry",
+] as const;
+
 export const NATIVE_PACKAGE_SOURCES = [
 	"npm:@kaiserlich-dev/pi-session-search",
 ] as const;
@@ -42,6 +53,13 @@ const CORE_PACKAGE_UPDATE_ALIASES: Record<string, string> = {
 	"pi-session-search": "npm:@kaiserlich-dev/pi-session-search",
 };
 
+const REMOVED_OPTIONAL_PACKAGE_TARGETS = new Set([
+	"all-extras",
+	"generative-ui",
+	"pi-generative-ui",
+	"ui",
+]);
+
 export const MAX_NATIVE_PACKAGE_NODE_MAJOR = 22;
 
 type OptionalPackagePreset = {
@@ -53,27 +71,22 @@ type OptionalPackagePreset = {
 
 export const OPTIONAL_PACKAGE_PRESETS = {
 	memory: {
-		description: "Preference and correction memory across sessions.",
+		description: "Research-session preference and correction memory.",
 		sources: ["npm:@samfp/pi-memory"],
 	},
 	hindsight: {
-		description: "Durable Hindsight-backed long-term memory for Pi.",
+		description: "Hindsight-backed research continuity memory.",
 		sources: ["npm:@luxusai/pi-hindsight"],
 	},
 	"session-search": {
-		description: "Indexed recall for prior session transcripts.",
+		description: "Indexed recall for prior research session transcripts.",
 		sources: ["npm:@kaiserlich-dev/pi-session-search"],
 		maxNodeMajor: MAX_NATIVE_PACKAGE_NODE_MAJOR,
-	},
-	"generative-ui": {
-		description: "Interactive Glimpse UI widgets.",
-		sources: ["npm:pi-generative-ui"],
-		platforms: ["darwin"],
 	},
 } as const;
 
 export type OptionalPackagePresetName = keyof typeof OPTIONAL_PACKAGE_PRESETS;
-export type OptionalPackagePresetAlias = OptionalPackagePresetName | "ui" | "all-extras";
+export type OptionalPackagePresetAlias = OptionalPackagePresetName;
 
 const LEGACY_DEFAULT_PACKAGE_SETS = [
 	[
@@ -94,6 +107,20 @@ const LEGACY_DEFAULT_PACKAGE_SETS = [
 	],
 	[
 		...LEGACY_TELEMETRY_CORE_PACKAGE_SOURCES,
+		"npm:pi-generative-ui",
+	],
+	[
+		...LEGACY_CORE_WITH_PI_OTEL_PACKAGE_SOURCES,
+	],
+	[
+		...LEGACY_CORE_WITH_PI_OTEL_PACKAGE_SOURCES,
+		"npm:pi-generative-ui",
+	],
+	[
+		...LEGACY_TELEMETRY_WITH_PI_OTEL_PACKAGE_SOURCES,
+	],
+	[
+		...LEGACY_TELEMETRY_WITH_PI_OTEL_PACKAGE_SOURCES,
 		"npm:pi-generative-ui",
 	],
 	[
@@ -149,15 +176,14 @@ export function filterPackageSourcesForCurrentNode<T extends string>(sources: re
 	return sources.filter((source) => !blocked.has(source));
 }
 
-export function normalizeOptionalPackagePresetName(name: string): OptionalPackagePresetName | "all-extras" | undefined {
+export function normalizeOptionalPackagePresetName(name: string): OptionalPackagePresetName | undefined {
 	const normalized = name.trim().toLowerCase();
-	if (normalized === "ui") {
-		return "generative-ui";
-	}
-	if (normalized === "all-extras") {
-		return "all-extras";
-	}
 	return normalized in OPTIONAL_PACKAGE_PRESETS ? (normalized as OptionalPackagePresetName) : undefined;
+}
+
+export function isRemovedOptionalPackageTarget(name: string): boolean {
+	const normalized = name.trim().toLowerCase().replace(/^npm:/, "");
+	return REMOVED_OPTIONAL_PACKAGE_TARGETS.has(normalized);
 }
 
 export function isOptionalPackagePresetSupported(
@@ -178,11 +204,6 @@ export function getOptionalPackagePresetSources(
 ): string[] | undefined {
 	const normalized = normalizeOptionalPackagePresetName(name);
 	if (!normalized) return undefined;
-
-	if (normalized === "all-extras") {
-		const sources = listOptionalPackagePresets(platform, version).flatMap((preset) => preset.sources);
-		return sources.length > 0 ? sources : undefined;
-	}
 
 	if (!isOptionalPackagePresetSupported(normalized, platform, version)) return undefined;
 	return [...OPTIONAL_PACKAGE_PRESETS[normalized].sources];
@@ -205,12 +226,15 @@ export function listOptionalPackagePresets(platform?: NodeJS.Platform, version =
 
 export function listOptionalPackagePresetInstallTargets(platform?: NodeJS.Platform, version = process.versions.node): string[] {
 	const names = listOptionalPackagePresets(platform, version).map((preset) => preset.name);
-	return names.length > 0 ? [...names, "all-extras"] : [];
+	return names;
 }
 
 export function resolvePackageUpdateSources(name: string, platform: NodeJS.Platform = process.platform): string[] {
 	const trimmed = name.trim();
 	if (!trimmed) return [];
+	if (isRemovedOptionalPackageTarget(trimmed)) {
+		throw new Error(`Removed optional package target: ${trimmed}. Use \`feynman packages list\` and install only the research-continuity presets you need.`);
+	}
 	if (trimmed.startsWith("npm:") || trimmed.startsWith("github:") || trimmed.startsWith("file:")) {
 		return [trimmed];
 	}

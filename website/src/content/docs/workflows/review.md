@@ -1,11 +1,11 @@
 ---
-title: Peer Review
-description: Simulate a rigorous peer review with severity-graded feedback.
+title: Research Review
+description: Run an internal research critique with severity-graded feedback.
 section: Workflows
 order: 3
 ---
 
-The peer review workflow simulates a thorough academic peer review of a paper, draft, or research artifact. It produces severity-graded feedback with inline annotations, covering methodology, claims, writing quality, and reproducibility.
+The review workflow runs an internal research critique of a paper, draft, or research artifact. It is not an external peer review or publication decision; it identifies likely methodology, evidence, clarity, and reproducibility issues before you trust or revise the work.
 
 ## Usage
 
@@ -38,7 +38,7 @@ The reviewer examines the paper's claims, checks whether the methodology support
 
 Each piece of feedback is assigned a severity level: **critical** (fundamental issues that undermine the paper's validity), **major** (significant problems that should be addressed), **minor** (suggestions for improvement), or **nit** (stylistic or formatting issues). This grading helps you triage feedback and focus on what matters most.
 
-The reviewer also produces a summary assessment with an overall recommendation and a confidence score indicating how certain it is about each finding. When the reviewer identifies a claim that cannot be verified from the paper alone, it flags it as needing additional evidence.
+The reviewer also produces a summary assessment with a revision priority and a confidence score indicating how certain it is about each finding. When the reviewer identifies a claim that cannot be verified from the paper alone, it flags it as needing additional evidence.
 
 If a PDF cannot be parsed or an external source is unavailable, the workflow still writes the final review artifact and marks the affected checks as blocked rather than silently ending after a plan.
 
@@ -46,7 +46,7 @@ If a PDF cannot be parsed or an external source is unavailable, the workflow sti
 
 The review output includes:
 
-- **Summary Assessment** -- Overall evaluation and recommendation
+- **Summary Assessment** -- Overall evaluation and revision priority
 - **Strengths** -- What the paper does well
 - **Critical Issues** -- Fundamental problems that need to be addressed
 - **Major Issues** -- Significant concerns with suggested fixes

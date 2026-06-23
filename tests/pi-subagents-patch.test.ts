@@ -371,7 +371,7 @@ test("patchPiSubagentsSource documents output in top-level task schema", () => {
 		"\ttask: Type.String(), ",
 		"\tcwd: Type.Optional(Type.String()),",
 		"\tcount: Type.Optional(Type.Integer({ minimum: 1, description: \"Repeat this parallel task N times with the same settings.\" })),",
-		"\tmodel: Type.Optional(Type.String({ description: \"Override model for this task (e.g. 'google/gemini-3-pro')\" })),",
+		"\tmodel: Type.Optional(Type.String({ description: \"Override model for this task (e.g. 'openai/gpt-5')\" })),",
 		"\tskill: Type.Optional(SkillOverride),",
 		"});",
 		"export const SubagentParams = Type.Object({",

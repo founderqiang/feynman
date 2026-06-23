@@ -183,6 +183,8 @@
 
 .prose pre {
   position: relative;
+  box-sizing: border-box;
+  max-width: 100%;
   border-radius: 0.5rem;
   padding: 1rem 1.25rem;
   overflow-x: auto;
@@ -198,11 +200,16 @@
 
 .prose .astro-code {
   position: relative !important;
+  box-sizing: border-box;
+  max-width: 100%;
+  overflow-x: auto;
   background-color: var(--secondary) !important;
   color: var(--card-foreground) !important;
 }
 
 .prose pre code {
+  display: inline-block;
+  min-width: max-content;
   background: none !important;
   border: none;
   padding: 0;
@@ -272,7 +279,10 @@
 }
 
 .prose table {
+  display: block;
   width: 100%;
+  max-width: 100%;
+  overflow-x: auto;
   border-collapse: collapse;
   margin-bottom: 1.5rem;
   font-size: 0.9rem;

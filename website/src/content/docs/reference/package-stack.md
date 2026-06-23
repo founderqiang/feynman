@@ -7,7 +7,7 @@ order: 3
 
 Feynman is built on the Pi runtime and uses curated Pi packages for its capabilities. Packages are managed through `feynman packages` commands and configured in `~/.feynman/settings.json`.
 
-Feynman also ships a local research extension that registers project-specific tools such as AlphaXiv wrappers, Feynman commands, and read-only Hugging Face Hub inspection. Those extension tools are bundled with Feynman itself rather than installed as separate Pi packages.
+Feynman also ships a local research extension that registers project-specific tools such as AlphaXiv wrappers, Feynman commands, and read-only Hugging Face Hub inspection. Those extension tools are bundled with Feynman itself rather than installed as separate Pi packages. Pi runtime observability is provided by the bundled `pi-otel` package, pointed at PostHog AI Observability through trace-specific OTLP variables, and configured for metadata-only spans by default. CLI spans use PostHog distributed tracing and are queryable from `posthog.trace_spans`; Pi LLM/tool spans appear in AI Observability and as `$ai_*` events.
 
 This page follows Pi's upstream docs for [packages](https://github.com/badlogic/pi-mono/blob/main/packages/coding-agent/docs/packages.md), [extensions](https://github.com/badlogic/pi-mono/blob/main/packages/coding-agent/docs/extensions.md), and [skills](https://github.com/badlogic/pi-mono/blob/main/packages/coding-agent/docs/skills.md). Feynman adds its own package presets and bundled research extension on top of that model.
 
@@ -21,6 +21,7 @@ These are installed by default with every Feynman installation. They provide the
 | `pi-subagents` | Parallel agent spawning for literature gathering and task decomposition. Powers the multi-agent workflows |
 | `pi-docparser` | Parse PDFs, Office documents, spreadsheets, and images for content extraction |
 | `pi-web-access` | Web browsing, GitHub access, PDF fetching, and media retrieval |
+| `pi-otel` | OpenTelemetry spans for Pi sessions, model calls, turns, and tool usage, exported without prompt or tool payload content |
 
 These packages are updated together when you run `feynman update`. You do not need to install them individually.
 
@@ -38,14 +39,13 @@ Install on demand with `feynman packages install <preset>`. These extend Feynman
 
 | Package | Preset | Purpose |
 | --- | --- | --- |
-| `@samfp/pi-memory` | `memory` | Pi-managed preference and correction memory across sessions |
-| `@luxusai/pi-hindsight` | `hindsight` | Hindsight-backed durable long-term memory for Pi. Requires a Hindsight server or Hindsight Cloud account |
-| `@kaiserlich-dev/pi-session-search` | `session-search` | Indexed session recall with summarize and resume UI. Available through Node.js 22.x while its sqlite dependency is native-bound |
-| `pi-generative-ui` | `generative-ui` | Interactive HTML-style widgets for rich output on macOS. The upstream package currently declares macOS-only support |
+| `@samfp/pi-memory` | `memory` | Pi-managed preference and correction memory for research-session continuity |
+| `@luxusai/pi-hindsight` | `hindsight` | Hindsight-backed research-continuity memory. Requires a Hindsight server or Hindsight Cloud account |
+| `@kaiserlich-dev/pi-session-search` | `session-search` | Indexed recall for prior research-session transcripts. Available through Node.js 22.x while its sqlite dependency is native-bound |
 
 ## Installing and managing packages
 
-List all available packages and their install status:
+List supported optional research packages and their install status:
 
 ```bash
 feynman packages list
@@ -54,10 +54,8 @@ feynman packages list
 Install a specific optional preset:
 
 ```bash
-feynman packages install generative-ui
+feynman packages install session-search
 ```
-
-On Linux and Windows, `generative-ui` is hidden from `feynman packages list` and explicit installs print a platform message instead of attempting an npm install.
 
 ## Updating packages
 

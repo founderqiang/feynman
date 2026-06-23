@@ -36,13 +36,13 @@ export function readPromptSpecs(appRoot) {
 
 export const extensionCommandSpecs = [
 	{ name: "capabilities", args: "", section: "Project & Session", description: "Show installed packages, discovery entrypoints, and runtime capability counts.", publicDocs: true },
-	{ name: "commands", args: "", section: "Project & Session", description: "Browse all available slash commands, including built-in and package commands.", publicDocs: true },
+	{ name: "commands", args: "", section: "Project & Session", description: "Browse Feynman workflow, project, and approved live runtime commands.", publicDocs: true },
 	{ name: "help", args: "", section: "Project & Session", description: "Show grouped Feynman commands and prefill the editor with a selected command.", publicDocs: true },
-	{ name: "feynman-model", args: "", section: "Project & Session", description: "Open Feynman model menu (main + per-subagent overrides).", publicDocs: true },
+	{ name: "feynman-model", args: "", section: "Project & Session", description: "Open Feynman's non-Pro model menu (main + per-subagent overrides).", publicDocs: true },
 	{ name: "init", args: "", section: "Project & Session", description: "Bootstrap AGENTS.md and session-log folders for a research project.", publicDocs: true },
 	{ name: "outputs", args: "", section: "Project & Session", description: "Browse all research artifacts (papers, outputs, experiments, notes).", publicDocs: true },
 	{ name: "service-tier", args: "", section: "Project & Session", description: "View or set the provider service tier override for supported models.", publicDocs: true },
-	{ name: "tools", args: "", section: "Project & Session", description: "Browse all callable tools with their source and parameter summary.", publicDocs: true },
+	{ name: "tools", args: "", section: "Project & Session", description: "Browse public research tools with their source and parameter summary.", publicDocs: true },
 ];
 
 export const livePackageCommandGroups = [
@@ -56,10 +56,8 @@ export const livePackageCommandGroups = [
 		],
 	},
 	{
-		title: "Bundled Package Commands",
+		title: "Live Package Commands",
 		commands: [
-			{ name: "ps", usage: "/ps" },
-			{ name: "schedule-prompt", usage: "/schedule-prompt" },
 			{ name: "search", usage: "/search" },
 			{ name: "preview", usage: "/preview" },
 			{ name: "hotkeys", usage: "/hotkeys" },
@@ -69,6 +67,40 @@ export const livePackageCommandGroups = [
 		],
 	},
 ];
+
+export function isPublicLivePackageCommandName(name) {
+	return livePackageCommandGroups.some((group) => group.commands.some((command) => command.name === name));
+}
+
+export const livePackageToolGroups = [
+	{
+		title: "Web & Source Retrieval",
+		tools: [
+			{ name: "web_search" },
+			{ name: "fetch_content" },
+			{ name: "get_search_content" },
+			{ name: "code_search" },
+		],
+	},
+	{
+		title: "Document Access",
+		tools: [
+			{ name: "document_parse" },
+			{ name: "document_search" },
+			{ name: "document_screenshot" },
+		],
+	},
+	{
+		title: "Agents & Delegation",
+		tools: [
+			{ name: "subagent" },
+		],
+	},
+];
+
+export function isPublicLivePackageToolName(name) {
+	return livePackageToolGroups.some((group) => group.tools.some((tool) => tool.name === name));
+}
 
 export const cliCommandSections = [
 	{
@@ -81,6 +113,8 @@ export const cliCommandSections = [
 			{ usage: "feynman setup preview", description: "Install or verify preview dependencies." },
 			{ usage: "feynman doctor", description: "Diagnose config, auth, Pi runtime, and preview dependencies." },
 			{ usage: "feynman status", description: "Show the current setup summary." },
+			{ usage: 'feynman rank "topic" [--expand-citations N] [--full-text-top N] [--critique-top N] [--synthesize]', description: "Rank papers for deciding what to read first, with transparent citation, method, reproducibility, and provenance evidence." },
+			{ usage: "feynman paper <doi|arxiv-id|openalex-id|pmid|pmcid|title> [--fetch-full-text]", description: "Resolve legal full-text access candidates for one paper across OpenAlex, arXiv/alphaXiv, DOI, PMID/PMCID, and Europe PMC, with optional source-specific text fetching." },
 		],
 	},
 	{
@@ -89,7 +123,7 @@ export const cliCommandSections = [
 			{ usage: "feynman model list", description: "List available models in Pi auth storage." },
 			{ usage: "feynman model login [id]", description: "Authenticate a model provider with OAuth or API-key setup." },
 			{ usage: "feynman model logout [id]", description: "Clear stored auth for a model provider." },
-			{ usage: "feynman model set <provider/model>", description: "Set the default model (also accepts provider:model)." },
+			{ usage: "feynman model set <provider/model>", description: "Set the default non-Pro model (also accepts provider:model)." },
 			{ usage: "feynman model tier [value]", description: "View or set the request service tier override." },
 		],
 	},
@@ -99,6 +133,11 @@ export const cliCommandSections = [
 			{ usage: "feynman alpha login", description: "Sign in to alphaXiv." },
 			{ usage: "feynman alpha logout", description: "Clear alphaXiv auth." },
 			{ usage: "feynman alpha status", description: "Check alphaXiv auth status." },
+			{ usage: 'feynman alpha search "query"', description: "Search papers through Feynman's bundled alphaXiv client." },
+			{ usage: "feynman alpha get <id-or-url>", description: "Fetch paper content and local annotations." },
+			{ usage: 'feynman alpha ask <id-or-url> "question"', description: "Ask a question about a paper." },
+			{ usage: "feynman alpha code <github-url> [path]", description: "Inspect a paper repository." },
+			{ usage: "feynman alpha annotate ...", description: "Read, write, list, or clear local paper notes." },
 		],
 	},
 	{
@@ -119,7 +158,7 @@ export const legacyFlags = [
 	{ usage: "--alpha-login", description: "Sign in to alphaXiv and exit." },
 	{ usage: "--alpha-logout", description: "Clear alphaXiv auth and exit." },
 	{ usage: "--alpha-status", description: "Show alphaXiv auth status and exit." },
-	{ usage: "--model <provider/model|provider:model>", description: "Force a specific model." },
+	{ usage: "--model <provider/model|provider:model>", description: "Force a specific non-Pro model." },
 	{ usage: "--service-tier <tier>", description: "Override request service tier for this run." },
 	{ usage: "--thinking <level>", description: "Set thinking level: off | minimal | low | medium | high | xhigh." },
 	{ usage: "--cwd <path>", description: "Set the working directory for tools." },
@@ -129,7 +168,7 @@ export const legacyFlags = [
 	{ usage: "--setup-preview", description: "Alias for `feynman setup preview`." },
 ];
 
-export const topLevelCommandNames = ["alpha", "chat", "doctor", "help", "model", "packages", "search", "setup", "status", "update"];
+export const topLevelCommandNames = ["alpha", "chat", "doctor", "help", "model", "packages", "paper", "rank", "search", "setup", "status", "update"];
 
 export function formatSlashUsage(command) {
 	return `/${command.name}${command.args ? ` ${command.args}` : ""}`;

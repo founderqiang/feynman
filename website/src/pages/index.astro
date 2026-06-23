@@ -5,22 +5,23 @@ import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/com
 
 const workflows = [
   { command: "/deepresearch", description: "Multi-agent investigation across papers, web, and code" },
+  { command: "rank", description: "PaperRank scoring for what to read first, with graph and methodology evidence" },
   { command: "/lit", description: "Literature review from primary sources with consensus mapping" },
-  { command: "/review", description: "Simulated peer review with severity scores and a revision plan" },
+  { command: "/review", description: "Internal research critique with severity scores and a revision plan" },
   { command: "/audit", description: "Paper-to-code mismatch audit for reproducibility claims" },
-  { command: "/replicate", description: "Replication plan and execution in a sandboxed Docker container" },
+  { command: "/replicate", description: "Replication plan with environment choice before any execution" },
   { command: "/recipe", description: "Ranked ML training recipes grounded in papers, datasets, docs, and code" },
   { command: "/compare", description: "Side-by-side source comparison with agreement and conflict matrix" },
   { command: "/draft", description: "Polished paper-style draft with inline citations from findings" },
-  { command: "/autoresearch", description: "Autonomous loop: hypothesize, experiment, measure, repeat" },
-  { command: "/watch", description: "Recurring monitor for new papers, code, or product updates" },
+  { command: "/autoresearch", description: "Bounded loop: hypothesize, experiment, measure, repeat" },
+  { command: "/watch", description: "Research watch baseline with optional scheduled follow-up" },
 ]
 
 const agents = [
   { name: "Researcher", description: "Hunts for evidence across papers, the web, repos, and docs" },
   { name: "Reviewer", description: "Grades claims by severity, flags gaps, and suggests revisions" },
   { name: "Writer", description: "Structures notes into briefs, drafts, and paper-style output" },
-  { name: "Verifier", description: "Checks every citation, verifies URLs, removes dead links" },
+  { name: "Verifier", description: "Checks citations, verifies URLs, removes dead links" },
 ]
 
 const sources = [
@@ -32,17 +33,18 @@ const sources = [
 ]
 
 const compute = [
-  { name: "Docker", description: "Isolated local containers for safe experiments", href: "https://www.docker.com/" },
-  { name: "Modal", description: "Serverless GPU compute for burst training and inference", href: "https://modal.com/" },
-  { name: "RunPod", description: "Persistent GPU pods with SSH access for long-running runs", href: "https://www.runpod.io/" },
+  { name: "Docker", description: "Isolated containers for explicitly chosen replication and benchmark runs", href: "https://www.docker.com/" },
+  { name: "Modal", description: "Burst GPU execution for bounded research benchmark jobs", href: "https://modal.com/" },
+  { name: "RunPod", description: "Persistent GPU pods for long-running research experiments with SSH", href: "https://www.runpod.io/" },
 ]
 
 const terminalCommands = [
   { command: 'feynman "what do we know about scaling laws"', description: "Cited research brief from papers and web" },
+  { command: 'feynman rank "sparse autoencoders"', description: "PaperRank table with citation, graph, methodology, and reproducibility scores" },
   { command: 'feynman deepresearch "mechanistic interpretability"', description: "Multi-agent deep dive with synthesis and verification" },
   { command: 'feynman lit "RLHF alternatives"', description: "Literature review with consensus and open questions" },
   { command: "feynman audit 2401.12345", description: "Paper claims vs. what the code actually does" },
-  { command: 'feynman replicate "chain-of-thought improves math"', description: "Replication plan, compute target, experiment execution" },
+  { command: 'feynman replicate "chain-of-thought improves math"', description: "Replication plan, compute target, gated experiment steps" },
   { command: 'feynman recipe "fine-tune a small model for math reasoning"', description: "Ranked, implementable ML training recipes" },
 ]
 
@@ -58,10 +60,10 @@ const installCommands = [
     <section class="flex flex-col items-center gap-8 pb-16 pt-20 text-center">
       <div class="flex max-w-3xl flex-col gap-4">
         <h1 class="text-4xl font-bold tracking-tight sm:text-5xl lg:text-6xl">
-          The open source AI<br />research agent
+          The open source AI <br />research agent
         </h1>
         <p class="mx-auto max-w-2xl text-lg text-muted-foreground">
-          Reads papers, searches the web, writes drafts, runs experiments, and cites every claim. All locally on your computer.
+          Reads papers, searches the web, writes research drafts, plans experiments, and cites research claims. Controlled from your terminal with local artifacts.
         </p>
         <p class="text-sm text-muted-foreground">
           Made by{" "}
@@ -128,7 +130,7 @@ const installCommands = [
       <div class="flex flex-col items-center gap-8 text-center">
         <div class="flex flex-col gap-2">
           <h2 class="text-2xl font-bold tracking-tight sm:text-3xl">What you type &rarr; what happens</h2>
-          <p class="text-muted-foreground">Ask a question or run a workflow. Every answer is cited.</p>
+          <p class="text-muted-foreground">Ask a research question or run a workflow. Research claims carry citations.</p>
         </div>
         <Card client:load className="w-full text-left">
           <CardContent client:load>
@@ -168,7 +170,7 @@ const installCommands = [
       <div class="flex flex-col items-center gap-8 text-center">
         <div class="flex flex-col gap-2">
           <h2 class="text-2xl font-bold tracking-tight sm:text-3xl">Agents</h2>
-          <p class="text-muted-foreground">You ask a question. The right team assembles.</p>
+          <p class="text-muted-foreground">Specialist agents join when the research task needs them.</p>
         </div>
         <div class="grid w-full gap-4 sm:grid-cols-2 lg:grid-cols-4">
           {agents.map((agent) => (
@@ -187,7 +189,7 @@ const installCommands = [
       <div class="flex flex-col items-center gap-8 text-center">
         <div class="flex flex-col gap-2">
           <h2 class="text-2xl font-bold tracking-tight sm:text-3xl">Skills &amp; Tools</h2>
-          <p class="text-muted-foreground">How Feynman searches, remembers, and exports work.</p>
+          <p class="text-muted-foreground">How Feynman retrieves sources, preserves research continuity, and renders artifacts.</p>
         </div>
         <div class="grid w-full gap-4 sm:grid-cols-2 lg:grid-cols-4">
           {sources.map((source) => (
@@ -214,7 +216,7 @@ const installCommands = [
       <div class="flex flex-col items-center gap-8 text-center">
         <div class="flex flex-col gap-2">
           <h2 class="text-2xl font-bold tracking-tight sm:text-3xl">Compute</h2>
-          <p class="text-muted-foreground">Run experiments locally or burst onto managed GPU infrastructure when needed.</p>
+          <p class="text-muted-foreground">Optional execution targets for research experiments after the workflow chooses an environment.</p>
         </div>
         <div class="grid w-full gap-4 sm:grid-cols-3">
           {compute.map((provider) => (
@@ -235,7 +237,7 @@ const installCommands = [
 
     <section class="flex flex-col items-center gap-6 py-20 text-center">
       <p class="text-muted-foreground">
-        Built on <a href="https://github.com/badlogic/pi-mono" class="text-primary hover:underline">Pi</a> and <a href="https://www.alphaxiv.org/" class="text-primary hover:underline">alphaXiv</a>. Capabilities ship as Pi skills and every output stays source-grounded.
+        Built on <a href="https://github.com/badlogic/pi-mono" class="text-primary hover:underline">Pi</a> and <a href="https://www.alphaxiv.org/" class="text-primary hover:underline">alphaXiv</a>. Capabilities ship as Pi skills and research outputs stay source-grounded.
       </p>
       <div class="flex flex-wrap items-center justify-center gap-3">
         <a href="/docs/getting-started/installation">

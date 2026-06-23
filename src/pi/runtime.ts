@@ -1,4 +1,4 @@
-import { existsSync, readFileSync } from "node:fs";
+import { chmodSync, existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { delimiter, dirname, isAbsolute, resolve } from "node:path";
 import { pathToFileURL } from "node:url";
 
@@ -9,6 +9,7 @@ import {
 	resolveExecutable,
 	type ResolvedExecutables,
 } from "../system/executables.js";
+import { getPostHogOtelEnv } from "../telemetry/posthog.js";
 
 export type PiRuntimeOptions = {
 	appRoot: string;
@@ -27,6 +28,39 @@ export type PiRuntimeOptions = {
 
 export function getFeynmanNpmPrefixPath(feynmanAgentDir: string): string {
 	return resolve(dirname(feynmanAgentDir), "npm-global");
+}
+
+export function getFeynmanCommandShimDir(feynmanAgentDir: string): string {
+	return resolve(dirname(feynmanAgentDir), "bin");
+}
+
+export function getFeynmanCliBinPath(appRoot: string): string {
+	return resolve(appRoot, "bin", "feynman.js");
+}
+
+function shellSingleQuote(value: string): string {
+	return `'${value.replaceAll("'", "'\\''")}'`;
+}
+
+export function ensureFeynmanCommandShim(appRoot: string, feynmanAgentDir: string): string {
+	const shimDir = getFeynmanCommandShimDir(feynmanAgentDir);
+	const shimPath = resolve(shimDir, "feynman");
+	const feynmanBinPath = getFeynmanCliBinPath(appRoot);
+	const script = [
+		"#!/bin/sh",
+		'FEYNMAN_NODE="${FEYNMAN_NODE_EXECUTABLE:-node}"',
+		'FEYNMAN_BIN="${FEYNMAN_BIN_PATH:-}"',
+		'if [ -z "$FEYNMAN_BIN" ]; then',
+		`\tFEYNMAN_BIN=${shellSingleQuote(feynmanBinPath)}`,
+		"fi",
+		'exec "$FEYNMAN_NODE" "$FEYNMAN_BIN" "$@"',
+		"",
+	].join("\n");
+
+	mkdirSync(shimDir, { recursive: true });
+	writeFileSync(shimPath, script, { encoding: "utf8", mode: 0o755 });
+	chmodSync(shimPath, 0o755);
+	return shimPath;
 }
 
 export function applyFeynmanPackageManagerEnv(feynmanAgentDir: string): string {
@@ -142,24 +176,28 @@ export function buildPiEnv(
 ): NodeJS.ProcessEnv {
 	const feynmanNpmPrefixPath = getFeynmanNpmPrefixPath(options.feynmanAgentDir);
 	const feynmanNpmBinPath = resolve(feynmanNpmPrefixPath, "bin");
+	const feynmanCommandShimDir = getFeynmanCommandShimDir(options.feynmanAgentDir);
 	const feynmanWebSearchConfigPath = resolve(dirname(options.feynmanAgentDir), "web-search.json");
+	const feynmanBinPath = getFeynmanCliBinPath(options.appRoot);
 
 	const currentPath = process.env.PATH ?? "";
-	const binEntries = [paths.nodeModulesBinPath, resolve(paths.piWorkspaceNodeModulesPath, ".bin"), feynmanNpmBinPath];
+	const binEntries = [feynmanCommandShimDir, paths.nodeModulesBinPath, resolve(paths.piWorkspaceNodeModulesPath, ".bin"), feynmanNpmBinPath];
 	const binPath = binEntries.join(delimiter);
 	const pandocPath = process.env.PANDOC_PATH ?? executables?.pandoc ?? resolveExecutable("pandoc", PANDOC_FALLBACK_PATHS);
 	const mermaidPath = process.env.MERMAID_CLI_PATH ?? executables?.mermaid ?? resolveExecutable("mmdc", MERMAID_FALLBACK_PATHS);
 	const browserPath =
 		process.env.PUPPETEER_EXECUTABLE_PATH ?? executables?.browser ?? resolveExecutable("google-chrome", BROWSER_FALLBACK_PATHS);
+	const telemetryEnv = getPostHogOtelEnv("feynman-pi", options.feynmanVersion);
 	return {
 		...process.env,
+		...telemetryEnv,
 		PATH: `${binPath}${delimiter}${currentPath}`,
 		FEYNMAN_VERSION: options.feynmanVersion,
 		FEYNMAN_SESSION_DIR: options.sessionDir,
 		FEYNMAN_MEMORY_DIR: resolve(dirname(options.feynmanAgentDir), "memory"),
 		FEYNMAN_WEB_SEARCH_CONFIG: feynmanWebSearchConfigPath,
 		FEYNMAN_NODE_EXECUTABLE: process.execPath,
-		FEYNMAN_BIN_PATH: resolve(options.appRoot, "bin", "feynman.js"),
+		FEYNMAN_BIN_PATH: feynmanBinPath,
 		FEYNMAN_PI_CLI_PATH: paths.piCliPath,
 		FEYNMAN_NPM_PREFIX: feynmanNpmPrefixPath,
 		// Ensure the Pi child process uses Feynman's agent dir for auth/models/settings.

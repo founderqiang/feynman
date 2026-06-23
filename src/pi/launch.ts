@@ -2,7 +2,14 @@ import { spawn } from "node:child_process";
 import { existsSync } from "node:fs";
 import { constants } from "node:os";
 
-import { buildPiArgs, buildPiEnv, type PiRuntimeOptions, resolvePiPaths, toNodeImportSpecifier } from "./runtime.js";
+import {
+	buildPiArgs,
+	buildPiEnv,
+	ensureFeynmanCommandShim,
+	type PiRuntimeOptions,
+	resolvePiPaths,
+	toNodeImportSpecifier,
+} from "./runtime.js";
 import { patchPiRuntimeNodeModules } from "./runtime-patches.js";
 import { ensureSupportedNodeVersion } from "../system/node-version.js";
 import { resolveAllExecutables } from "../system/executables.js";
@@ -58,6 +65,7 @@ export async function launchPiChat(options: PiRuntimeOptions): Promise<void> {
 		? ["--import", toNodeImportSpecifier(tsxLoaderPath), "--import", toNodeImportSpecifier(promisePolyfillSourcePath)]
 		: ["--import", toNodeImportSpecifier(promisePolyfillPath)];
 	const executables = await resolveAllExecutables();
+	ensureFeynmanCommandShim(options.appRoot, options.feynmanAgentDir);
 
 	const child = spawn(process.execPath, [...importArgs, wrapperPath, piMainPath, ...buildPiArgs(options, paths)], {
 		cwd: options.workingDir,

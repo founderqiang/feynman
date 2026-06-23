@@ -14,6 +14,8 @@ import { patchPiModelRegistrySource } from "./lib/pi-model-registry-patch.mjs";
 import { patchPiEditorSource, patchPiInteractiveThemeSource, patchPiTuiSource } from "./lib/pi-tui-patch.mjs";
 import { PI_WEB_ACCESS_PATCH_TARGETS, patchPiWebAccessSource } from "./lib/pi-web-access-patch.mjs";
 import { PI_SUBAGENTS_PATCH_TARGETS, patchPiSubagentsSource, stripPiSubagentBuiltinModelSource } from "./lib/pi-subagents-patch.mjs";
+import { PI_OTEL_PATCH_TARGETS, patchPiOtelSource } from "./lib/pi-otel-patch.mjs";
+import { patchPiSessionSearchSource } from "./lib/pi-session-search-patch.mjs";
 
 const here = dirname(fileURLToPath(import.meta.url));
 const appRoot = resolve(here, "..");
@@ -105,6 +107,7 @@ const workspaceExtensionLoaderPath = resolveWorkspacePiFile(
 	"loader.js",
 );
 const piSubagentsRoot = resolve(workspaceRoot, "pi-subagents");
+const piOtelRoot = resolve(workspaceRoot, "pi-otel");
 const sessionSearchIndexerPath = resolve(
 	workspaceRoot,
 	"@kaiserlich-dev",
@@ -639,6 +642,30 @@ for (const subagentsRoot of new Set(
 	}
 }
 
+const globalPiOtelRoot = resolve(globalNodeModulesRoot, "pi-otel");
+const agentNpmPiOtelRoot = resolve(feynmanHome, "agent", "npm", "node_modules", "pi-otel");
+for (const otelRoot of new Set(
+	[piOtelRoot, globalPiOtelRoot, agentNpmPiOtelRoot]
+		.filter((root) => existsSync(root))
+		.map((root) => {
+			try {
+				return realpathSync(root);
+			} catch {
+				return root;
+			}
+		}),
+)) {
+	for (const relativePath of PI_OTEL_PATCH_TARGETS) {
+		const entryPath = resolve(otelRoot, relativePath);
+		if (!existsSync(entryPath)) continue;
+		const source = readFileSync(entryPath, "utf8");
+		const patched = patchPiOtelSource(relativePath, source);
+		if (patched !== source) {
+			writeFileSync(entryPath, patched, "utf8");
+		}
+	}
+}
+
 if (packageJsonPath && existsSync(packageJsonPath)) {
 	const pkg = JSON.parse(readFileSync(packageJsonPath, "utf8"));
 	if (pkg.piConfig?.name !== "feynman" || pkg.piConfig?.configDir !== ".feynman") {
@@ -821,11 +848,9 @@ if (existsSync(piWebAccessRoot)) {
 
 if (existsSync(sessionSearchIndexerPath)) {
 	const source = readFileSync(sessionSearchIndexerPath, "utf8");
-	const original = 'const sessionsDir = path.join(os.homedir(), ".pi", "agent", "sessions");';
-	const replacement =
-		'const sessionsDir = process.env.FEYNMAN_SESSION_DIR ?? process.env.PI_SESSION_DIR ?? path.join(os.homedir(), ".pi", "agent", "sessions");';
-	if (source.includes(original)) {
-		writeFileSync(sessionSearchIndexerPath, source.replace(original, replacement), "utf8");
+	const patched = patchPiSessionSearchSource("extensions/indexer.ts", source);
+	if (patched !== source) {
+		writeFileSync(sessionSearchIndexerPath, patched, "utf8");
 	}
 }
 

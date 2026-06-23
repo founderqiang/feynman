@@ -17,18 +17,15 @@ The wizard walks you through three stages: model configuration, authentication, 
 
 ## Stage 1: Model selection
 
-Feynman supports multiple model providers. The setup wizard presents a list of available providers and models. Select your preferred default model using the arrow keys:
+Feynman supports multiple model providers. The setup wizard presents a list of available providers and models. Select your preferred non-Pro default model using the arrow keys:
 
 ```
 ? Select your default model:
-  anthropic:claude-sonnet-4-20250514
-> anthropic:claude-opus-4-20250514
-  openai:gpt-4o
-  openai:o3
-  google:gemini-2.5-pro
+> provider:non-pro-model-from-your-list
+  provider:another-non-pro-model
 ```
 
-The model you choose here becomes the default for all sessions. You can override it per-session with the `--model` flag or change it later via `feynman model set <provider/model>` or `feynman model set <provider:model>`.
+The non-Pro model you choose here becomes the default for all sessions. You can override it per-session with the `--model` flag or change it later via `feynman model set <provider/model>` or `feynman model set <provider:model>`. Feynman rejects Pro-class model IDs for default and explicit model selection; choose a non-Pro model.
 
 ## Stage 2: Authentication
 
@@ -115,10 +112,9 @@ to confirm the local model is available and make it the default.
 
 Feynman's core ships with the research essentials: alphaXiv access, web access, document parsing, and subagents. On platforms with supported optional presets, the wizard can offer extras:
 
-- **memory** -- Preference and correction memory across sessions
-- **hindsight** -- Hindsight-backed durable long-term memory for Pi; requires a Hindsight server or Hindsight Cloud account
-- **session-search** -- Indexed recall for prior session transcripts. Available through Node.js 22.x while its sqlite dependency is native-bound
-- **generative-ui** -- Interactive HTML-style widgets for rich output on macOS
+- **memory** -- Preference and correction memory for research-session continuity
+- **hindsight** -- Hindsight-backed research-continuity memory; requires a Hindsight server or Hindsight Cloud account
+- **session-search** -- Indexed recall for prior research-session transcripts. Available through Node.js 22.x while its sqlite dependency is native-bound
 
 You can skip this step and install packages later with `feynman packages install <preset>`.
 

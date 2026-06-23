@@ -4,6 +4,14 @@ import { resolve } from "node:path";
 
 import type { ExtensionAPI, SlashCommandInfo, ToolInfo } from "@earendil-works/pi-coding-agent";
 
+import {
+	extensionCommandSpecs,
+	isPublicLivePackageCommandName,
+	isPublicLivePackageToolName,
+	readPromptSpecs,
+} from "../../metadata/commands.mjs";
+import { APP_ROOT } from "./shared.js";
+
 function resolveFeynmanSettingsPath(): string {
 	const configured = process.env.PI_CODING_AGENT_DIR?.trim();
 	const agentDir = configured
@@ -49,6 +57,27 @@ function formatCommandLine(command: SlashCommandInfo): string {
 	return `/${command.name} — ${command.description ?? ""} [${source}]`;
 }
 
+function getPublicCommandNames(): Set<string> {
+	return new Set([
+		...readPromptSpecs(APP_ROOT)
+			.filter((entry) => entry.section !== "Internal")
+			.map((entry) => entry.name),
+		...extensionCommandSpecs.filter((entry) => entry.publicDocs).map((entry) => entry.name),
+	]);
+}
+
+function isPublicCommand(command: SlashCommandInfo, publicNames: Set<string>): boolean {
+	return publicNames.has(command.name) || isPublicLivePackageCommandName(command.name);
+}
+
+function isFeynmanLocalTool(tool: ToolInfo): boolean {
+	return tool.sourceInfo.source === "local" && tool.sourceInfo.path.includes("/extensions/research-tools/");
+}
+
+function isPublicTool(tool: ToolInfo): boolean {
+	return isFeynmanLocalTool(tool) || isPublicLivePackageToolName(tool.name);
+}
+
 function summarizeToolParameters(tool: ToolInfo): string {
 	const properties =
 		tool.parameters &&
@@ -68,10 +97,12 @@ function formatToolLine(tool: ToolInfo): string {
 
 export function registerDiscoveryCommands(pi: ExtensionAPI): void {
 	pi.registerCommand("commands", {
-		description: "Browse all available slash commands, including package and built-in commands.",
+		description: "Browse Feynman workflow, project, and approved live runtime commands.",
 		handler: async (_args, ctx) => {
+			const publicNames = getPublicCommandNames();
 			const commands = pi
 				.getCommands()
+				.filter((command) => isPublicCommand(command, publicNames))
 				.slice()
 				.sort((left, right) => left.name.localeCompare(right.name));
 			const items = commands.map((command) => formatCommandLine(command));
@@ -83,10 +114,11 @@ export function registerDiscoveryCommands(pi: ExtensionAPI): void {
 	});
 
 	pi.registerCommand("tools", {
-		description: "Browse all callable tools with their source and parameter summary.",
+		description: "Browse public research tools with their source and parameter summary.",
 		handler: async (_args, ctx) => {
 			const tools = pi
 				.getAllTools()
+				.filter(isPublicTool)
 				.slice()
 				.sort((left, right) => left.name.localeCompare(right.name));
 			const selected = await ctx.ui.select("Tools", tools.map((tool) => formatToolLine(tool)));
@@ -102,8 +134,9 @@ export function registerDiscoveryCommands(pi: ExtensionAPI): void {
 	pi.registerCommand("capabilities", {
 		description: "Show installed packages, discovery entrypoints, and high-level runtime capability counts.",
 		handler: async (_args, ctx) => {
-			const commands = pi.getCommands();
-			const tools = pi.getAllTools();
+			const publicNames = getPublicCommandNames();
+			const commands = pi.getCommands().filter((command) => isPublicCommand(command, publicNames));
+			const tools = pi.getAllTools().filter(isPublicTool);
 			const workflows = commands.filter((command) => formatSourceLabel(command.sourceInfo) === "workflow");
 			const packages = readConfiguredPackages();
 			const items = [

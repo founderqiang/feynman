@@ -1,32 +1,13 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { appendFileSync, cpSync, existsSync, lstatSync, mkdtempSync, mkdirSync, readFileSync, symlinkSync, writeFileSync } from "node:fs";
+import { existsSync, mkdtempSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 
 import {
-	getMissingConfiguredPackages,
 	installPackageSources,
-	resolveAdjacentNpmCommand,
-	seedBundledWorkspacePackages,
 	updateConfiguredPackages,
 } from "../src/pi/package-ops.js";
-
-function createBundledWorkspace(
-	appRoot: string,
-	packageNames: string[],
-	dependenciesByPackage: Record<string, Record<string, string>> = {},
-): void {
-	for (const packageName of packageNames) {
-		const packageDir = resolve(appRoot, ".feynman", "npm", "node_modules", packageName);
-		mkdirSync(packageDir, { recursive: true });
-		writeFileSync(
-			join(packageDir, "package.json"),
-			JSON.stringify({ name: packageName, version: "1.0.0", dependencies: dependenciesByPackage[packageName] }, null, 2) + "\n",
-			"utf8",
-		);
-	}
-}
 
 function createInstalledGlobalPackage(homeRoot: string, packageName: string, version = "1.0.0"): void {
 	const packageDir = resolve(homeRoot, "npm-global", "lib", "node_modules", packageName);
@@ -43,164 +24,52 @@ function writeSettings(agentDir: string, settings: Record<string, unknown>): voi
 	writeFileSync(resolve(agentDir, "settings.json"), JSON.stringify(settings, null, 2) + "\n", "utf8");
 }
 
+function getRootPiRuntimeVersion(): string {
+	const manifest = JSON.parse(readFileSync(resolve(process.cwd(), "package.json"), "utf8")) as {
+		dependencies?: Record<string, string>;
+	};
+	const version = manifest.dependencies?.["@earendil-works/pi-coding-agent"];
+	assert.ok(version);
+	return version;
+}
+
 function writeFakeNpmScript(root: string, body: string): string {
 	const scriptPath = resolve(root, "fake-npm.mjs");
 	writeFileSync(scriptPath, body, "utf8");
 	return scriptPath;
 }
 
-test("resolveAdjacentNpmCommand uses npm-cli.js on Windows when it is bundled beside Node", () => {
-	const root = mkdtempSync(join(tmpdir(), "feynman-windows-npm-"));
-	const nodePath = resolve(root, "node.exe");
-	const npmCliPath = resolve(root, "node_modules", "npm", "bin", "npm-cli.js");
-	mkdirSync(resolve(root, "node_modules", "npm", "bin"), { recursive: true });
-	writeFileSync(nodePath, "", "utf8");
-	writeFileSync(npmCliPath, "", "utf8");
-	writeFileSync(resolve(root, "npm.cmd"), "", "utf8");
+const SESSION_SEARCH_UPSTREAM_INDEXER = `
+export async function indexAllSessions() {
+    const sessionsDir = path.join(os.homedir(), ".pi", "agent", "sessions");
+    const files = findSessionFiles(sessionsDir);
+    return files.length;
+}
+`;
 
-	assert.deepEqual(resolveAdjacentNpmCommand(nodePath, "win32"), {
-		command: nodePath,
-		args: [npmCliPath],
-	});
-});
+function getSessionSearchIndexerPath(homeRoot: string): string {
+	return resolve(homeRoot, "npm-global", "lib", "node_modules", "@kaiserlich-dev", "pi-session-search", "extensions", "indexer.ts");
+}
 
-test("resolveAdjacentNpmCommand falls back to npm.cmd with a shell on Windows", () => {
-	const root = mkdtempSync(join(tmpdir(), "feynman-windows-npm-cmd-"));
-	const nodePath = resolve(root, "node.exe");
-	const npmCmdPath = resolve(root, "npm.cmd");
-	writeFileSync(nodePath, "", "utf8");
-	writeFileSync(npmCmdPath, "", "utf8");
-
-	assert.deepEqual(resolveAdjacentNpmCommand(nodePath, "win32"), {
-		command: npmCmdPath,
-		args: [],
-		shell: true,
-	});
-});
-
-test("seedBundledWorkspacePackages links bundled packages into the Feynman npm prefix", () => {
-	const appRoot = mkdtempSync(join(tmpdir(), "feynman-bundle-"));
-	const homeRoot = mkdtempSync(join(tmpdir(), "feynman-home-"));
-	const agentDir = resolve(homeRoot, "agent");
-	mkdirSync(agentDir, { recursive: true });
-
-	createBundledWorkspace(appRoot, ["pi-subagents", "@samfp/pi-memory"]);
-
-	const seeded = seedBundledWorkspacePackages(agentDir, appRoot, [
-		"npm:pi-subagents",
-		"npm:@samfp/pi-memory",
-	]);
-
-	assert.deepEqual(seeded.sort(), ["npm:@samfp/pi-memory", "npm:pi-subagents"]);
-	const globalRoot = resolve(homeRoot, "npm-global", "lib", "node_modules");
-	assert.equal(existsSync(resolve(globalRoot, "pi-subagents", "package.json")), true);
-	assert.equal(existsSync(resolve(globalRoot, "@samfp", "pi-memory", "package.json")), true);
-});
-
-test("seedBundledWorkspacePackages preserves existing installed packages", () => {
-	const appRoot = mkdtempSync(join(tmpdir(), "feynman-bundle-"));
-	const homeRoot = mkdtempSync(join(tmpdir(), "feynman-home-"));
-	const agentDir = resolve(homeRoot, "agent");
-	const existingPackageDir = resolve(homeRoot, "npm-global", "lib", "node_modules", "pi-subagents");
-
-	mkdirSync(agentDir, { recursive: true });
-	createBundledWorkspace(appRoot, ["pi-subagents"]);
-	mkdirSync(existingPackageDir, { recursive: true });
-	writeFileSync(resolve(existingPackageDir, "package.json"), '{"name":"pi-subagents","version":"user"}\n', "utf8");
-
-	const seeded = seedBundledWorkspacePackages(agentDir, appRoot, ["npm:pi-subagents"]);
-
-	assert.deepEqual(seeded, []);
-	assert.equal(readFileSync(resolve(existingPackageDir, "package.json"), "utf8"), '{"name":"pi-subagents","version":"user"}\n');
-	assert.equal(lstatSync(existingPackageDir).isSymbolicLink(), false);
-});
-
-test("seedBundledWorkspacePackages treats copied bundled packages as satisfied", () => {
-	const appRoot = mkdtempSync(join(tmpdir(), "feynman-bundle-"));
-	const homeRoot = mkdtempSync(join(tmpdir(), "feynman-home-"));
-	const agentDir = resolve(homeRoot, "agent");
-	const bundledPackageDir = resolve(appRoot, ".feynman", "npm", "node_modules", "pi-subagents");
-	const existingPackageDir = resolve(homeRoot, "npm-global", "lib", "node_modules", "pi-subagents");
-
-	mkdirSync(agentDir, { recursive: true });
-	createBundledWorkspace(appRoot, ["pi-subagents"]);
-	cpSync(bundledPackageDir, existingPackageDir, { recursive: true });
-
-	const seeded = seedBundledWorkspacePackages(agentDir, appRoot, ["npm:pi-subagents"]);
-
-	assert.deepEqual(seeded, ["npm:pi-subagents"]);
-	assert.equal(lstatSync(existingPackageDir).isSymbolicLink(), false);
-});
-
-test("getMissingConfiguredPackages seeds bundled packages before reporting missing startup packages", () => {
-	const appRoot = mkdtempSync(join(tmpdir(), "feynman-bundle-"));
-	const homeRoot = mkdtempSync(join(tmpdir(), "feynman-home-"));
-	const workingDir = resolve(homeRoot, "project");
-	const agentDir = resolve(homeRoot, "agent");
-	mkdirSync(workingDir, { recursive: true });
-	createBundledWorkspace(appRoot, ["pi-subagents"]);
-	writeSettings(agentDir, {
-		packages: ["npm:pi-subagents"],
-	});
-
-	const result = getMissingConfiguredPackages(workingDir, agentDir, appRoot);
-
-	assert.deepEqual(result.missing, []);
-	assert.equal(existsSync(resolve(homeRoot, "npm-global", "lib", "node_modules", "pi-subagents", "package.json")), true);
-});
-
-test("seedBundledWorkspacePackages repairs broken existing bundled packages", () => {
-	const appRoot = mkdtempSync(join(tmpdir(), "feynman-bundle-"));
-	const homeRoot = mkdtempSync(join(tmpdir(), "feynman-home-"));
-	const agentDir = resolve(homeRoot, "agent");
-	const existingPackageDir = resolve(homeRoot, "npm-global", "lib", "node_modules", "pi-markdown-preview");
-
-	mkdirSync(agentDir, { recursive: true });
-	createBundledWorkspace(appRoot, ["pi-markdown-preview", "puppeteer-core"], {
-		"pi-markdown-preview": { "puppeteer-core": "^24.0.0" },
-	});
-	mkdirSync(existingPackageDir, { recursive: true });
-	writeFileSync(
-		resolve(existingPackageDir, "package.json"),
-		JSON.stringify({ name: "pi-markdown-preview", version: "broken", dependencies: { "puppeteer-core": "^24.0.0" } }) + "\n",
-		"utf8",
-	);
-
-	const seeded = seedBundledWorkspacePackages(agentDir, appRoot, ["npm:pi-markdown-preview"]);
-
-	assert.deepEqual(seeded, ["npm:pi-markdown-preview"]);
-	assert.equal(lstatSync(existingPackageDir).isSymbolicLink(), true);
-	assert.equal(lstatSync(resolve(homeRoot, "npm-global", "lib", "node_modules", "puppeteer-core")).isSymbolicLink(), true);
-	assert.equal(
-		readFileSync(resolve(existingPackageDir, "package.json"), "utf8").includes('"version": "1.0.0"'),
-		true,
-	);
-});
-
-test("seedBundledWorkspacePackages prunes stale links from previous bundled runtimes", () => {
-	const appRoot = mkdtempSync(join(tmpdir(), "feynman-bundle-"));
-	const homeRoot = mkdtempSync(join(tmpdir(), "feynman-home-"));
-	const agentDir = resolve(homeRoot, "agent");
-	const globalRoot = resolve(homeRoot, "npm-global", "lib", "node_modules");
-	const stalePackagePath = resolve(globalRoot, "@opentelemetry", "api");
-	const externalPackagePath = resolve(globalRoot, "@external", "kept");
-	const externalTarget = resolve(homeRoot, "external", "kept");
-
-	mkdirSync(agentDir, { recursive: true });
-	mkdirSync(resolve(globalRoot, "@opentelemetry"), { recursive: true });
-	mkdirSync(resolve(globalRoot, "@external"), { recursive: true });
-	mkdirSync(externalTarget, { recursive: true });
-	createBundledWorkspace(appRoot, ["pi-subagents"]);
-	symlinkSync(resolve(appRoot, ".feynman", "npm", "node_modules", "@opentelemetry", "api"), stalePackagePath, "dir");
-	symlinkSync(externalTarget, externalPackagePath, "dir");
-
-	const seeded = seedBundledWorkspacePackages(agentDir, appRoot, ["npm:pi-subagents"]);
-
-	assert.deepEqual(seeded, ["npm:pi-subagents"]);
-	assert.equal(existsSync(stalePackagePath), false);
-	assert.equal(existsSync(resolve(globalRoot, "@opentelemetry")), false);
-	assert.equal(lstatSync(externalPackagePath).isSymbolicLink(), true);
-});
+function writeFakeSessionSearchNpmScript(root: string, logPath?: string): string {
+	return writeFakeNpmScript(root, [
+		`import { appendFileSync, mkdirSync, writeFileSync } from "node:fs";`,
+		`import { resolve } from "node:path";`,
+		`const args = process.argv.slice(2);`,
+		`if (args.length === 2 && args[0] === "root" && args[1] === "-g") {`,
+		`  console.log(resolve(${JSON.stringify(root)}, "npm-global", "lib", "node_modules"));`,
+		`  process.exit(0);`,
+		`}`,
+		logPath ? `appendFileSync(${JSON.stringify(logPath)}, JSON.stringify(args) + "\\n", "utf8");` : "",
+		`const prefixIndex = args.indexOf("--prefix");`,
+		`const prefix = prefixIndex >= 0 ? args[prefixIndex + 1] : resolve(${JSON.stringify(root)}, "npm-global");`,
+		`const packageRoot = resolve(prefix, "lib", "node_modules", "@kaiserlich-dev", "pi-session-search");`,
+		`mkdirSync(resolve(packageRoot, "extensions"), { recursive: true });`,
+		`writeFileSync(resolve(packageRoot, "package.json"), JSON.stringify({ name: "@kaiserlich-dev/pi-session-search", version: "1.1.3" }, null, 2) + "\\n", "utf8");`,
+		`writeFileSync(resolve(packageRoot, "extensions", "indexer.ts"), ${JSON.stringify(SESSION_SEARCH_UPSTREAM_INDEXER)}, "utf8");`,
+		"process.exit(0);",
+	].filter(Boolean).join("\n"));
+}
 
 test("installPackageSources filters noisy npm chatter but preserves meaningful output", async () => {
 	const root = mkdtempSync(join(tmpdir(), "feynman-package-ops-"));
@@ -344,14 +213,105 @@ test("installPackageSources installs Pi runtime peers beside Pi packages", async
 	assert.deepEqual(result.installed, ["npm:pi-btw"]);
 	const invocations = readFileSync(logPath, "utf8").trim().split("\n").map((line) => JSON.parse(line) as string[]);
 	assert.equal(invocations.length, 1);
-	assert.ok(invocations[0]?.includes("pi-btw"));
-	assert.ok(invocations[0]?.some((entry) => /^@mariozechner\/pi-coding-agent@/.test(entry)));
-	assert.ok(invocations[0]?.some((entry) => /^@mariozechner\/pi-ai@/.test(entry)));
-	assert.ok(invocations[0]?.some((entry) => /^@mariozechner\/pi-tui@/.test(entry)));
-	assert.ok(invocations[0]?.some((entry) => /^@earendil-works\/pi-coding-agent@/.test(entry)));
-	assert.ok(invocations[0]?.some((entry) => /^@earendil-works\/pi-ai@/.test(entry)));
-	assert.ok(invocations[0]?.some((entry) => /^@earendil-works\/pi-tui@/.test(entry)));
-	assert.ok(invocations[0]?.some((entry) => /^typebox@/.test(entry)));
+	const invocation = invocations[0] ?? [];
+	assert.ok(invocation.includes("pi-btw"));
+	assert.ok(invocation.some((entry) => /^@mariozechner\/pi-coding-agent@/.test(entry)));
+	assert.ok(invocation.some((entry) => /^@mariozechner\/pi-ai@/.test(entry)));
+	assert.ok(invocation.some((entry) => /^@mariozechner\/pi-tui@/.test(entry)));
+	assert.ok(invocation.some((entry) => /^@earendil-works\/pi-coding-agent@/.test(entry)));
+	assert.ok(invocation.some((entry) => /^@earendil-works\/pi-ai@/.test(entry)));
+	assert.ok(invocation.some((entry) => /^@earendil-works\/pi-tui@/.test(entry)));
+	assert.ok(invocation.some((entry) => /^typebox@/.test(entry)));
+	const piRuntimeVersion = getRootPiRuntimeVersion();
+	assert.ok(invocation.includes(`@earendil-works/pi-agent-core@${piRuntimeVersion}`));
+	assert.ok(invocation.includes(`@earendil-works/pi-ai@${piRuntimeVersion}`));
+	assert.ok(invocation.includes(`@earendil-works/pi-coding-agent@${piRuntimeVersion}`));
+	assert.ok(invocation.includes(`@earendil-works/pi-tui@${piRuntimeVersion}`));
+	assert.ok(invocation.includes(`@mariozechner/pi-agent-core@npm:@earendil-works/pi-agent-core@${piRuntimeVersion}`));
+	assert.ok(invocation.includes(`@mariozechner/pi-ai@npm:@earendil-works/pi-ai@${piRuntimeVersion}`));
+	assert.ok(invocation.includes(`@mariozechner/pi-coding-agent@npm:@earendil-works/pi-coding-agent@${piRuntimeVersion}`));
+	assert.ok(invocation.includes(`@mariozechner/pi-tui@npm:@earendil-works/pi-tui@${piRuntimeVersion}`));
+});
+
+test("installPackageSources emits npm alias specs for legacy Pi runtime peers found in node_modules", async () => {
+	const root = mkdtempSync(join(tmpdir(), "feynman-package-ops-"));
+	const workingDir = resolve(root, "project");
+	const agentDir = resolve(root, "agent");
+	const logPath = resolve(root, "npm-invocations.jsonl");
+	mkdirSync(workingDir, { recursive: true });
+
+	const scriptPath = writeFakeNpmScript(root, [
+		`import { appendFileSync } from "node:fs";`,
+		`appendFileSync(${JSON.stringify(logPath)}, JSON.stringify(process.argv.slice(2)) + "\\n", "utf8");`,
+		"process.exit(0);",
+	].join("\n"));
+
+	writeSettings(agentDir, {
+		npmCommand: [process.execPath, scriptPath],
+	});
+
+	const appRoot = resolve(import.meta.dirname ?? __dirname, "..");
+	const bundledRoot = resolve(appRoot, ".feynman", "npm", "node_modules");
+	const legacyPackages = {
+		"@mariozechner/pi-agent-core": "@earendil-works/pi-agent-core",
+		"@mariozechner/pi-coding-agent": "@earendil-works/pi-coding-agent",
+		"@mariozechner/pi-ai": "@earendil-works/pi-ai",
+		"@mariozechner/pi-tui": "@earendil-works/pi-tui",
+	};
+
+	const createdPaths: string[] = [];
+	try {
+		for (const [dirName, realName] of Object.entries(legacyPackages)) {
+			const packageRoot = resolve(bundledRoot, dirName);
+			mkdirSync(packageRoot, { recursive: true });
+			createdPaths.push(packageRoot);
+			writeFileSync(
+				resolve(packageRoot, "package.json"),
+				JSON.stringify({ name: realName, version: "0.79.1" }, null, 2) + "\n",
+				"utf8",
+			);
+		}
+
+		const result = await installPackageSources(workingDir, agentDir, ["npm:pi-btw"]);
+
+		assert.deepEqual(result.installed, ["npm:pi-btw"]);
+		const invocation = readFileSync(logPath, "utf8").trim().split("\n").map((line) => JSON.parse(line) as string[])[0] ?? [];
+		assert.ok(invocation.includes("@mariozechner/pi-agent-core@npm:@earendil-works/pi-agent-core@0.79.1"));
+		assert.ok(invocation.includes("@mariozechner/pi-coding-agent@npm:@earendil-works/pi-coding-agent@0.79.1"));
+		assert.ok(invocation.includes("@mariozechner/pi-ai@npm:@earendil-works/pi-ai@0.79.1"));
+		assert.ok(invocation.includes("@mariozechner/pi-tui@npm:@earendil-works/pi-tui@0.79.1"));
+	} finally {
+		for (const packageRoot of createdPaths) {
+			rmSync(packageRoot, { recursive: true, force: true });
+		}
+		rmSync(resolve(bundledRoot, "@mariozechner"), { recursive: true, force: true });
+	}
+});
+
+test("installPackageSources patches installed Pi packages before returning", async () => {
+	const root = mkdtempSync(join(tmpdir(), "feynman-package-ops-"));
+	const workingDir = resolve(root, "project");
+	const agentDir = resolve(root, "agent");
+	mkdirSync(workingDir, { recursive: true });
+
+	const scriptPath = writeFakeSessionSearchNpmScript(root);
+	writeSettings(agentDir, {
+		npmCommand: [process.execPath, scriptPath],
+	});
+
+	const originalVersion = process.versions.node;
+	Object.defineProperty(process.versions, "node", { value: "22.17.0", configurable: true });
+	try {
+		const result = await installPackageSources(workingDir, agentDir, ["npm:@kaiserlich-dev/pi-session-search"]);
+		assert.deepEqual(result.installed, ["npm:@kaiserlich-dev/pi-session-search"]);
+		assert.deepEqual(result.skipped, []);
+	} finally {
+		Object.defineProperty(process.versions, "node", { value: originalVersion, configurable: true });
+	}
+
+	const patched = readFileSync(getSessionSearchIndexerPath(root), "utf8");
+	assert.match(patched, /FEYNMAN_SESSION_DIR/);
+	assert.doesNotMatch(patched, /const sessionsDir = path\.join\(os\.homedir\(\), "\.pi", "agent", "sessions"\)/);
 });
 
 test("updateConfiguredPackages batches multiple npm updates into a single install per scope", async () => {
@@ -440,6 +400,38 @@ test("updateConfiguredPackages updates a specific npm package through the npm in
 	assert.ok(invocations[0]?.includes("install"));
 	assert.ok(invocations[0]?.includes("--legacy-peer-deps"));
 	assert.ok(invocations[0]?.includes("@samfp/pi-memory@latest"));
+});
+
+test("updateConfiguredPackages patches updated Pi package roots before returning", async () => {
+	const root = mkdtempSync(join(tmpdir(), "feynman-package-ops-"));
+	const workingDir = resolve(root, "project");
+	const agentDir = resolve(root, "agent");
+	const logPath = resolve(root, "npm-invocations.jsonl");
+	mkdirSync(workingDir, { recursive: true });
+
+	const scriptPath = writeFakeSessionSearchNpmScript(root, logPath);
+	writeSettings(agentDir, {
+		npmCommand: [process.execPath, scriptPath],
+		packages: ["npm:@kaiserlich-dev/pi-session-search"],
+	});
+	createInstalledGlobalPackage(root, "@kaiserlich-dev/pi-session-search", "1.0.0");
+
+	const originalVersion = process.versions.node;
+	Object.defineProperty(process.versions, "node", { value: "22.17.0", configurable: true });
+	try {
+		const result = await updateConfiguredPackages(workingDir, agentDir, "npm:@kaiserlich-dev/pi-session-search");
+		assert.deepEqual(result.skipped, []);
+		assert.deepEqual(result.updated, ["npm:@kaiserlich-dev/pi-session-search"]);
+	} finally {
+		Object.defineProperty(process.versions, "node", { value: originalVersion, configurable: true });
+	}
+
+	const invocations = readFileSync(logPath, "utf8").trim().split("\n").map((line) => JSON.parse(line) as string[]);
+	assert.equal(invocations.length, 1);
+	assert.ok(invocations[0]?.includes("@kaiserlich-dev/pi-session-search@latest"));
+	const patched = readFileSync(getSessionSearchIndexerPath(root), "utf8");
+	assert.match(patched, /FEYNMAN_SESSION_DIR/);
+	assert.doesNotMatch(patched, /const sessionsDir = path\.join\(os\.homedir\(\), "\.pi", "agent", "sessions"\)/);
 });
 
 test("updateConfiguredPackages skips native package updates on unsupported Node majors", async () => {

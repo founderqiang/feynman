@@ -22,8 +22,8 @@ The `settings.json` file is the primary configuration file. It is created by `fe
 
 ```json
 {
-  "defaultProvider": "anthropic",
-  "defaultModel": "claude-sonnet-4-20250514",
+  "defaultProvider": "openai",
+  "defaultModel": "<non-pro-model-id-from-model-list>",
   "defaultThinkingLevel": "medium"
 }
 ```
@@ -33,7 +33,8 @@ The `settings.json` file is the primary configuration file. It is created by `fe
 The `defaultProvider` and `defaultModel` fields set which model is used when you launch Feynman without the `--model` flag. You can change them via the CLI:
 
 ```bash
-feynman model set anthropic/claude-opus-4-20250514
+feynman model list
+feynman model set <provider>/<non-pro-model-id>
 ```
 
 To see all models you have configured:
@@ -55,10 +56,11 @@ feynman model login amazon-bedrock
 Then switch the default model:
 
 ```bash
-feynman model set anthropic/claude-opus-4-6
+feynman model list
+feynman model set <provider>/<non-pro-model-id>
 ```
 
-The `model set` command accepts both `provider/model` and `provider:model` formats. `feynman model login google` opens the API-key flow directly, while `feynman model login amazon-bedrock` verifies the AWS credential chain that Pi uses for Bedrock access.
+The `model set` command accepts both `provider/model` and `provider:model` formats. Feynman rejects Pro-class model IDs here and in `--model`; choose a non-Pro model for defaults and per-session overrides. `feynman model login google` opens the API-key flow directly, while `feynman model login amazon-bedrock` verifies the AWS credential chain that Pi uses for Bedrock access.
 
 ## Web search configuration
 
@@ -80,7 +82,7 @@ Gemini Web browser-cookie access is disabled by default. To opt into it, set `"g
 
 ## Subagent model overrides
 
-Feynman's bundled subagents inherit the main default model unless you override them explicitly. Inside the REPL, run:
+Feynman's bundled subagents inherit the main non-Pro default model unless you override them explicitly. Inside the REPL, run:
 
 ```bash
 /feynman-model
@@ -88,10 +90,10 @@ Feynman's bundled subagents inherit the main default model unless you override t
 
 This opens an interactive picker where you can either:
 
-- change the main default model for the session environment
-- assign a different model to a specific bundled subagent such as `researcher`, `reviewer`, `writer`, or `verifier`
+- change the main non-Pro default model for the session environment
+- assign a different non-Pro model to a specific bundled subagent such as `researcher`, `reviewer`, `writer`, or `verifier`
 
-Per-subagent overrides are persisted in the synced agent files under `~/.feynman/agent/agents/` with a `model:` frontmatter field. Removing that field makes the subagent inherit the main default model again.
+Per-subagent overrides are persisted in the synced agent files under `~/.feynman/agent/agents/` with a `model:` frontmatter field. Removing that field makes the subagent inherit the main non-Pro default model again.
 
 ## Thinking levels
 
@@ -107,7 +109,7 @@ Feynman respects the following environment variables, which take precedence over
 
 | Variable | Description |
 | --- | --- |
-| `FEYNMAN_MODEL` | Override the default model |
+| `FEYNMAN_MODEL` | Override the default model with a non-Pro model |
 | `FEYNMAN_HOME` | Override the config directory (default: `~/.feynman`) |
 | `FEYNMAN_THINKING` | Override the thinking level |
 | `ANTHROPIC_API_KEY` | Anthropic API key |
@@ -116,6 +118,25 @@ Feynman respects the following environment variables, which take precedence over
 | `AWS_PROFILE` | Preferred AWS profile for Amazon Bedrock |
 | `TAVILY_API_KEY` | Tavily web search API key |
 | `SERPER_API_KEY` | Serper web search API key |
+| `FEYNMAN_TELEMETRY` | Set to `off` to disable Feynman analytics, logs, and traces |
+| `FEYNMAN_POSTHOG_HOST` | Override the PostHog ingest host |
+| `FEYNMAN_POSTHOG_PROJECT_ID` | Override the PostHog project ID used in telemetry metadata |
+| `FEYNMAN_POSTHOG_KEY` | Override the PostHog project token |
+| `PI_OTEL_CAPTURE_CONTENT` | Controls Pi runtime span content capture. Feynman defaults this to `metadata_only` |
+| `OTEL_EXPORTER_OTLP_TRACES_ENDPOINT` | Pi runtime trace endpoint. Feynman sets this to PostHog AI Observability by default |
+| `OTEL_EXPORTER_OTLP_LOGS_ENDPOINT` | Feynman CLI log endpoint. Feynman sets this to PostHog Logs by default |
+
+## Observability
+
+Feynman sends three bounded telemetry streams to the configured PostHog project when telemetry is enabled:
+
+- product analytics events from the CLI through the PostHog SDK
+- CLI logs through PostHog Logs at `/i/v1/logs`
+- OpenTelemetry spans for the CLI and Pi runtime
+
+The CLI's generic spans use PostHog distributed tracing at `/i/v1/traces`; query them in HogQL from `posthog.trace_spans`. The Pi runtime's LLM/tool spans use PostHog AI Observability at `/i/v0/ai/otel`; inspect them in the AI Observability traces UI or query their metadata as `$ai_*` events in `events`. Large AI properties live in `posthog.ai_events` during PostHog's AI-event retention window. Do not query bare `traces`, `spans`, or `trace_spans` table names; PostHog registers distributed trace spans as `posthog.trace_spans`.
+
+Feynman sets `PI_OTEL_CAPTURE_CONTENT=metadata_only`, so Pi spans carry model, tool, timing, count, and status metadata without prompt text or tool payload bodies. Set `FEYNMAN_TELEMETRY=off` to disable analytics, logs, and traces; Feynman also clears inherited OTLP/PostHog environment variables before launching Pi in that mode.
 
 ## Session storage
 

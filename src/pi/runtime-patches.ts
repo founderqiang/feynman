@@ -5,6 +5,8 @@ import { patchAlphaHubAuthSource } from "../../scripts/lib/alpha-hub-auth-patch.
 import { patchAlphaHubSearchResultsSource, patchAlphaHubSearchSource } from "../../scripts/lib/alpha-hub-search-patch.mjs";
 import { patchPiAgentCoreSource } from "../../scripts/lib/pi-agent-core-patch.mjs";
 import { patchPiModelRegistrySource } from "../../scripts/lib/pi-model-registry-patch.mjs";
+import { PI_OTEL_PATCH_TARGETS, patchPiOtelSource } from "../../scripts/lib/pi-otel-patch.mjs";
+import { PI_SESSION_SEARCH_PATCH_TARGETS, patchPiSessionSearchSource } from "../../scripts/lib/pi-session-search-patch.mjs";
 import { PI_SUBAGENTS_PATCH_TARGETS, patchPiSubagentsSource } from "../../scripts/lib/pi-subagents-patch.mjs";
 import { patchPiEditorSource, patchPiInteractiveThemeSource, patchPiTuiSource } from "../../scripts/lib/pi-tui-patch.mjs";
 import { PI_WEB_ACCESS_PATCH_TARGETS, patchPiWebAccessSource } from "../../scripts/lib/pi-web-access-patch.mjs";
@@ -54,6 +56,23 @@ function patchScopedPiPackageFileIfPresent(
 	return changed;
 }
 
+function patchPiCodingAgentPackageJsonSource(source: string): string {
+	const pkg = JSON.parse(source) as {
+		piConfig?: Record<string, unknown>;
+		[key: string]: unknown;
+	};
+	const piConfig = typeof pkg.piConfig === "object" && pkg.piConfig !== null ? pkg.piConfig : {};
+	if (piConfig.name === "feynman" && piConfig.configDir === ".feynman") {
+		return source;
+	}
+	pkg.piConfig = {
+		...piConfig,
+		name: "feynman",
+		configDir: ".feynman",
+	};
+	return JSON.stringify(pkg, null, 2) + "\n";
+}
+
 export function patchPiRuntimeNodeModules(appRoot: string, feynmanAgentDir?: string): boolean {
 	const nodeModuleRoots = [
 		resolve(appRoot, "node_modules"),
@@ -71,6 +90,12 @@ export function patchPiRuntimeNodeModules(appRoot: string, feynmanAgentDir?: str
 	}
 	let changed = false;
 	for (const nodeModulesPath of nodeModuleRoots) {
+		changed = patchScopedPiPackageFileIfPresent(
+			nodeModulesPath,
+			"pi-coding-agent",
+			"package.json",
+			patchPiCodingAgentPackageJsonSource,
+		) || changed;
 		changed = patchScopedPiPackageFileIfPresent(
 			nodeModulesPath,
 			"pi-agent-core",
@@ -124,6 +149,18 @@ export function patchPiRuntimeNodeModules(appRoot: string, feynmanAgentDir?: str
 			"pi-subagents",
 			PI_SUBAGENTS_PATCH_TARGETS,
 			patchPiSubagentsSource,
+		) || changed;
+		changed = patchPackageFiles(
+			nodeModulesPath,
+			"pi-otel",
+			PI_OTEL_PATCH_TARGETS,
+			patchPiOtelSource,
+		) || changed;
+		changed = patchPackageFiles(
+			nodeModulesPath,
+			"@kaiserlich-dev/pi-session-search",
+			PI_SESSION_SEARCH_PATCH_TARGETS,
+			patchPiSessionSearchSource,
 		) || changed;
 	}
 	return changed;

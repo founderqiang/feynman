@@ -5,7 +5,7 @@ section: Tools
 order: 2
 ---
 
-Feynman's web search tool retrieves current information from the web during research workflows. It supports multiple simultaneous queries, domain filtering, recency filtering, and optional full-page content retrieval. The researcher agent uses web search alongside AlphaXiv to gather evidence from non-academic sources like blog posts, documentation, news, and code repositories.
+Feynman's web search tool retrieves current information from the web during research workflows. It supports multiple simultaneous queries, domain filtering, recency filtering, and optional provider-available page-text retrieval. The researcher agent uses web search alongside AlphaXiv to gather evidence from non-academic sources like blog posts, documentation, news, and code repositories.
 
 ## Routing modes
 
@@ -55,7 +55,7 @@ The web search tool supports several capabilities that the researcher agent leve
 - **Multiple queries** -- Send 2-4 varied-angle queries simultaneously for broader coverage of a topic
 - **Domain filtering** -- Restrict results to specific domains like `arxiv.org`, `github.com`, or `nature.com`
 - **Recency filtering** -- Filter results by date, useful for fast-moving topics where only recent work matters
-- **Full content retrieval** -- Fetch complete page content for the most important results rather than relying on snippets
+- **Page text retrieval** -- Fetch provider-available page text for the most important results rather than relying only on snippets
 
 ## When it runs
 

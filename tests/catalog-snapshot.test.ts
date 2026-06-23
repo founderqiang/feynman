@@ -22,28 +22,66 @@ test("buildModelStatusSnapshotFromRecords emits guidance when no models are avai
 	assert.equal(snapshot.current, undefined);
 	assert.equal(snapshot.recommended, undefined);
 	assert.ok(snapshot.guidance.some((line) => line.includes("No authenticated Pi models")));
+	assert.ok(snapshot.guidance.some((line) => line.includes("feynman model login <provider>")));
+	assert.ok(snapshot.guidance.some((line) => line.includes("feynman model list")));
+	assert.ok(snapshot.guidance.every((line) => !line.includes("feynman setup model")));
 });
 
 test("buildModelStatusSnapshotFromRecords emits guidance when no default model is set", () => {
 	const snapshot = buildModelStatusSnapshotFromRecords(
-		[{ provider: "openai", id: "gpt-5.4" }],
-		[{ provider: "openai", id: "gpt-5.4" }],
+		[{ provider: "openai", id: "gpt-5.5" }],
+		[{ provider: "openai", id: "gpt-5.5" }],
 		undefined,
 	);
 
 	assert.equal(snapshot.currentValid, false);
 	assert.equal(snapshot.current, undefined);
 	assert.ok(snapshot.guidance.some((line) => line.includes("No default research model")));
+	assert.ok(snapshot.guidance.some((line) => line.includes("feynman model set <provider/non-pro-model>")));
+	assert.ok(snapshot.guidance.some((line) => line.includes("feynman model list")));
+	assert.ok(snapshot.guidance.every((line) => !line.includes("feynman setup model")));
+});
+
+test("buildModelStatusSnapshotFromRecords does not suggest setup model for Pro-only auth", () => {
+	const snapshot = buildModelStatusSnapshotFromRecords(
+		[{ provider: "test-provider", id: "sample-pro-model" }],
+		[{ provider: "test-provider", id: "sample-pro-model" }],
+		undefined,
+	);
+
+	assert.equal(snapshot.currentValid, false);
+	assert.ok(snapshot.guidance.some((line) => line.includes("Pro-class models are disabled")));
+	assert.ok(snapshot.guidance.some((line) => line.includes("feynman model list")));
+	assert.ok(snapshot.guidance.every((line) => !line.includes("feynman setup model")));
+});
+
+test("buildModelStatusSnapshotFromRecords excludes Pro-class provider and model strings from recommendations", () => {
+	const snapshot = buildModelStatusSnapshotFromRecords(
+		[
+			{ provider: "test-pro-provider", id: "sample-model" },
+			{ provider: "test-provider", id: "sample-pro-model" },
+			{ provider: "openai", id: "gpt-5.5" },
+		],
+		[
+			{ provider: "test-pro-provider", id: "sample-model" },
+			{ provider: "test-provider", id: "sample-pro-model" },
+			{ provider: "openai", id: "gpt-5.5" },
+		],
+		undefined,
+	);
+
+	assert.deepEqual(snapshot.availableModels, ["openai/gpt-5.5"]);
+	assert.equal(snapshot.recommended, "openai/gpt-5.5");
 });
 
 test("buildModelStatusSnapshotFromRecords marks provider as configured only when it has available models", () => {
 	const snapshot = buildModelStatusSnapshotFromRecords(
 		[
 			{ provider: "anthropic", id: "claude-opus-4-6" },
-			{ provider: "openai", id: "gpt-5.4" },
+			{ provider: "openai", id: "gpt-5.5" },
 		],
-		[{ provider: "openai", id: "gpt-5.4" }],
-		"openai/gpt-5.4",
+		[{ provider: "openai", id: "gpt-5.5" }],
+		"openai/gpt-5.5",
 	);
 
 	const anthropicProvider = snapshot.providers.find((provider) => provider.id === "anthropic");
@@ -64,11 +102,11 @@ test("buildModelStatusSnapshotFromRecords marks provider as current when selecte
 	const snapshot = buildModelStatusSnapshotFromRecords(
 		[
 			{ provider: "anthropic", id: "claude-opus-4-6" },
-			{ provider: "openai", id: "gpt-5.4" },
+			{ provider: "openai", id: "gpt-5.5" },
 		],
 		[
 			{ provider: "anthropic", id: "claude-opus-4-6" },
-			{ provider: "openai", id: "gpt-5.4" },
+			{ provider: "openai", id: "gpt-5.5" },
 		],
 		"anthropic/claude-opus-4-6",
 	);
@@ -83,25 +121,26 @@ test("buildModelStatusSnapshotFromRecords marks provider as current when selecte
 test("buildModelStatusSnapshotFromRecords returns available models sorted by research preference", () => {
 	const snapshot = buildModelStatusSnapshotFromRecords(
 		[
-			{ provider: "openai", id: "gpt-5.4" },
 			{ provider: "openai", id: "gpt-5.5" },
 			{ provider: "anthropic", id: "claude-opus-4-6" },
 			{ provider: "anthropic", id: "claude-opus-4-7" },
+			{ provider: "anthropic", id: "claude-opus-4-8" },
 		],
 		[
-			{ provider: "openai", id: "gpt-5.4" },
 			{ provider: "openai", id: "gpt-5.5" },
 			{ provider: "anthropic", id: "claude-opus-4-6" },
 			{ provider: "anthropic", id: "claude-opus-4-7" },
+			{ provider: "anthropic", id: "claude-opus-4-8" },
 		],
 		undefined,
 	);
 
-	assert.equal(snapshot.availableModels[0], "anthropic/claude-opus-4-7");
-	assert.equal(snapshot.availableModels[1], "anthropic/claude-opus-4-6");
-	assert.equal(snapshot.availableModels[2], "openai/gpt-5.5");
-	assert.equal(snapshot.availableModels[3], "openai/gpt-5.4");
-	assert.equal(snapshot.recommended, "anthropic/claude-opus-4-7");
+	assert.equal(snapshot.availableModels[0], "anthropic/claude-opus-4-8");
+	assert.equal(snapshot.availableModels[1], "anthropic/claude-opus-4-7");
+	assert.equal(snapshot.availableModels[2], "anthropic/claude-opus-4-6");
+	assert.equal(snapshot.availableModels[3], "openai/gpt-5.5");
+	assert.equal(snapshot.availableModels.length, 4);
+	assert.equal(snapshot.recommended, "anthropic/claude-opus-4-8");
 });
 
 test("buildModelStatusSnapshotFromRecords prefers current OpenCode Zen models over older Zen fallbacks", () => {
@@ -110,13 +149,13 @@ test("buildModelStatusSnapshotFromRecords prefers current OpenCode Zen models ov
 			{ provider: "opencode", id: "gpt-5.5" },
 			{ provider: "opencode", id: "claude-opus-4-6" },
 			{ provider: "opencode", id: "claude-opus-4-8" },
-			{ provider: "opencode", id: "gemini-3.1-pro" },
+			{ provider: "opencode", id: "kimi-k2.6" },
 		],
 		[
 			{ provider: "opencode", id: "gpt-5.5" },
 			{ provider: "opencode", id: "claude-opus-4-6" },
 			{ provider: "opencode", id: "claude-opus-4-8" },
-			{ provider: "opencode", id: "gemini-3.1-pro" },
+			{ provider: "opencode", id: "kimi-k2.6" },
 		],
 		undefined,
 	);
@@ -124,8 +163,30 @@ test("buildModelStatusSnapshotFromRecords prefers current OpenCode Zen models ov
 	assert.equal(snapshot.availableModels[0], "opencode/claude-opus-4-8");
 	assert.equal(snapshot.availableModels[1], "opencode/claude-opus-4-6");
 	assert.equal(snapshot.availableModels[2], "opencode/gpt-5.5");
-	assert.equal(snapshot.availableModels[3], "opencode/gemini-3.1-pro");
+	assert.equal(snapshot.availableModels[3], "opencode/kimi-k2.6");
 	assert.equal(snapshot.recommended, "opencode/claude-opus-4-8");
+});
+
+test("buildModelStatusSnapshotFromRecords prefers the newest OpenRouter OpenAI GPT fallback", () => {
+	const snapshot = buildModelStatusSnapshotFromRecords(
+		[
+			{ provider: "openrouter", id: "openai/gpt-5.4" },
+			{ provider: "openrouter", id: "openai/gpt-5.5" },
+			{ provider: "openrouter", id: "openai/gpt-5.3-codex" },
+		],
+		[
+			{ provider: "openrouter", id: "openai/gpt-5.4" },
+			{ provider: "openrouter", id: "openai/gpt-5.5" },
+			{ provider: "openrouter", id: "openai/gpt-5.3-codex" },
+		],
+		undefined,
+	);
+
+	assert.equal(snapshot.availableModels[0], "openrouter/openai/gpt-5.5");
+	assert.equal(snapshot.availableModels[1], "openrouter/openai/gpt-5.4");
+	assert.equal(snapshot.availableModels[2], "openrouter/openai/gpt-5.3-codex");
+	assert.equal(snapshot.recommended, "openrouter/openai/gpt-5.5");
+	assert.match(snapshot.recommendationReason ?? "", /newest OpenRouter OpenAI GPT fallback/);
 });
 
 test("buildModelStatusSnapshotFromRecords prefers the OpenCode Go default lineup", () => {
@@ -158,7 +219,7 @@ test("buildModelStatusSnapshotFromRecords sorts OpenCode providers with first-cl
 			{ provider: "xai", id: "grok-4" },
 			{ provider: "opencode-go", id: "kimi-k2.6" },
 			{ provider: "opencode", id: "gpt-5.5" },
-			{ provider: "google", id: "gemini-3-pro-preview" },
+			{ provider: "google", id: "gemini-3-flash" },
 		],
 		[],
 		undefined,

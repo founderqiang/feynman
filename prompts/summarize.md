@@ -1,5 +1,5 @@
 ---
-description: Summarize any URL, local file, or PDF using the RLM pattern — source stored on disk, never injected raw into context.
+description: Summarize a research source, paper, report, repository README, local artifact, or PDF using the RLM pattern — source stored on disk, never injected raw into context.
 args: <source> [--window-size <chars>] [--overlap <chars>] [--tier1-threshold <chars>] [--tier2-threshold <chars>]
 section: Research Workflows
 topLevelCli: true
@@ -10,12 +10,12 @@ Tool names are literal. Use only tools visible in the current tool set.
 
 - Search with `web_search`; do not call `search_web`, `google_search`, `google:search`, `search_google`, or `WebSearch`.
 - Fetch URLs with `fetch_content`; do not call bare `fetch`, `WebFetch`, `read_url_content`, or pass an array as `url`. Use `urls` for multiple URLs when the tool supports it.
-- Use the `alpha` CLI through `bash`; do not invent an `alpha_search` tool.
+- Use visible Feynman alpha tools such as `alpha_search` when present. For shell access, call `feynman alpha ...`; do not call the user's bare global `alpha` binary.
 - To ask the user a question, write plain chat text and wait for the next user message. Do not call `ask_user_question`, `ask_user`, `ask_followup_question`, or `user_choice`.
 - Do not use `Task` as an agent dispatcher. Use only the visible `subagent` tool when it exists.
 - If a tool returns `Tool not found` or `Invalid URL`, do not retry the same invalid call. Map to a canonical visible tool and valid arguments, or record the capability as blocked.
 
-Summarize the following source: $@
+Summarize the following research source: $@
 
 Derive a short slug from the source filename or URL domain (lowercase, hyphens, no filler words, ≤5 words — e.g. `attention-is-all-you-need`). Use this slug for all files in this run.
 
@@ -126,7 +126,7 @@ print(f"[summarize] chunks={len(chunks)} chunk_size={chunk_size} overlap={overla
 
 ### 3b. Confirm before spawning
 
-Briefly summarize: "Source is ~<chars> chars -> <N> chunks -> <N> researcher subagents. This may take several minutes." Then continue automatically. Do not ask for confirmation or wait for a proceed response unless the user explicitly requested review before launching.
+Briefly summarize: "Source is ~<chars> chars -> <N> chunks -> <N> researcher subagents. Continuing with the chunked pass." Then continue automatically. Do not ask for confirmation or wait for a proceed response unless the user explicitly requested review before launching.
 
 ### 3c. Dispatch researcher subagents
 
@@ -169,11 +169,20 @@ All tiers produce the same artifact at `outputs/<slug>-summary.md`:
 ## Key Claims
 [3-7 most important assertions, each as a bullet]
 
-## Methodology
-[Approach, dataset, evaluation, baselines — omit for non-research documents]
+## Field Context
+[Where the source positions itself, which prior work or research line it claims to extend, and what remains source-inferred rather than externally checked. Do not invent author/lab background; use `/lit` for a corpus-level view.]
+
+## Technical Hinges
+[2-4 contributions or decisions that the source turns on, ranked by originality and importance. For each hinge, name the contrast with prior work when the source gives enough evidence.]
+
+## Methodology From Primitives
+[Approach, dataset, evidence type, evaluation, baselines, and failure modes explained from first principles. Omit only when the source has no methodology or evidence section.]
 
 ## Limitations
 [What the source explicitly flags as weak, incomplete, or out of scope]
+
+## Follow-up Questions
+[3 questions that would change the next research decision, grounded in the source's discussion, limitations, results, or open problems]
 
 ## Verdict
 [One paragraph: what this document establishes, its credibility, who should read it]

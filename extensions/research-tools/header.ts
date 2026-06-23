@@ -48,8 +48,9 @@ function wrapWords(text: string, maxW: number): string[] {
 }
 
 function padRight(text: string, width: number): string {
-	const gap = Math.max(0, width - visibleLength(text));
-	return `${text}${" ".repeat(gap)}`;
+	const clipped = truncateVisible(text, width);
+	const gap = Math.max(0, width - visibleLength(clipped));
+	return `${clipped}${" ".repeat(gap)}`;
 }
 
 function centerText(text: string, width: number): string {
@@ -304,34 +305,19 @@ export function installFeynmanHeader(
 						theme.fg("accent", theme.bold("Research Workflows")),
 					];
 
-					for (const wf of workflows) {
-						if (wf.name === "/jobs" || wf.name === "/log") continue;
-						const desc = shortDescription(wf.description);
-						const descWords = desc.split(" ");
-						let line = "";
-						let first = true;
-						for (const word of descWords) {
-							const test = line ? `${line} ${word}` : word;
-							if (line && test.length > descW) {
+						for (const wf of workflows) {
+							if (wf.name === "/jobs" || wf.name === "/log") continue;
+							const desc = shortDescription(wf.description);
+							const descLines = wrapWords(desc, descW);
+							for (let index = 0; index < descLines.length; index += 1) {
+								const first = index === 0;
 								rightLines.push(
 									first
-										? `${theme.fg("accent", wf.name.padEnd(cmdNameW))}${theme.fg("dim", line)}`
-										: `${" ".repeat(cmdNameW)}${theme.fg("dim", line)}`,
+										? `${theme.fg("accent", padRight(wf.name, cmdNameW))} ${theme.fg("dim", descLines[index]!)}`
+										: `${" ".repeat(cmdNameW)} ${theme.fg("dim", descLines[index]!)}`,
 								);
-								first = false;
-								line = word;
-							} else {
-								line = test;
 							}
 						}
-						if (line || first) {
-							rightLines.push(
-								first
-									? `${theme.fg("accent", wf.name.padEnd(cmdNameW))}${theme.fg("dim", line)}`
-									: `${" ".repeat(cmdNameW)}${theme.fg("dim", line)}`,
-							);
-						}
-					}
 
 					const maxRows = Math.max(leftLines.length, rightLines.length);
 					for (let i = 0; i < maxRows; i++) {
@@ -350,12 +336,12 @@ export function installFeynmanHeader(
 
 					push(sep());
 					push(row(theme.fg("accent", theme.bold("Research Workflows"))));
-					const narrowDescW = Math.max(1, contentW - 17);
-					for (const wf of workflows) {
-						if (wf.name === "/jobs" || wf.name === "/log") continue;
-						const desc = shortDescription(wf.description);
-						push(row(`${theme.fg("accent", wf.name.padEnd(16))} ${theme.fg("dim", truncateVisible(desc, narrowDescW))}`));
-					}
+						const narrowDescW = Math.max(1, contentW - 17);
+						for (const wf of workflows) {
+							if (wf.name === "/jobs" || wf.name === "/log") continue;
+							const desc = shortDescription(wf.description);
+							push(row(`${theme.fg("accent", padRight(wf.name, 16))} ${theme.fg("dim", truncateVisible(desc, narrowDescW))}`));
+						}
 
 					if (agentData.agents.length > 0 || agentData.chains.length > 0) {
 						push(sep());

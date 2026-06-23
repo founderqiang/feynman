@@ -4,8 +4,7 @@ import { dirname } from "node:path";
 import { ModelRegistry, type PackageSource } from "@earendil-works/pi-coding-agent";
 
 import { CORE_PACKAGE_SOURCES, filterPackageSourcesForCurrentNode, shouldPruneLegacyDefaultPackages } from "./package-presets.js";
-import { choosePreferredModelRecord } from "../model/catalog.js";
-import { createModelRegistry } from "../model/registry.js";
+import { choosePreferredModelRecord, getAvailableModelRecords, isProClassModelSpec } from "../model/catalog.js";
 
 export type ThinkingLevel = "off" | "minimal" | "low" | "medium" | "high" | "xhigh";
 
@@ -119,18 +118,26 @@ export function normalizeFeynmanSettings(
 		settings.packages = filterConfiguredPackagesForCurrentNode(settings.packages as PackageSource[]);
 	}
 
-	const modelRegistry = createModelRegistry(authPath);
-	const availableModels = modelRegistry.getAvailable().map((model) => ({
+	const availableModels = getAvailableModelRecords(authPath).map((model) => ({
 		provider: model.provider,
 		id: model.id,
 	}));
+	const availableModelSpecs = new Set(availableModels.map((model) => `${model.provider}/${model.id}`));
 
-	if ((!settings.defaultProvider || !settings.defaultModel) && availableModels.length > 0) {
+	const defaultModelSpec = typeof settings.defaultProvider === "string" && typeof settings.defaultModel === "string"
+		? `${settings.defaultProvider}/${settings.defaultModel}`
+		: undefined;
+	const defaultIsProClass = isProClassModelSpec(defaultModelSpec);
+	const defaultUnavailable = Boolean(defaultModelSpec && !availableModelSpecs.has(defaultModelSpec));
+	if ((!settings.defaultProvider || !settings.defaultModel || defaultIsProClass || defaultUnavailable) && availableModels.length > 0) {
 		const preferredModel = choosePreferredModelRecord(availableModels);
 		if (preferredModel) {
 			settings.defaultProvider = preferredModel.provider;
 			settings.defaultModel = preferredModel.id;
 		}
+	} else if (defaultIsProClass) {
+		delete settings.defaultProvider;
+		delete settings.defaultModel;
 	}
 
 	mkdirSync(dirname(settingsPath), { recursive: true });

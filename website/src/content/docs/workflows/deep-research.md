@@ -5,7 +5,7 @@ section: Workflows
 order: 1
 ---
 
-Deep research is the flagship Feynman workflow. It dispatches multiple researcher agents in parallel to search academic papers, web sources, and code repositories, then synthesizes everything into a structured research brief with inline citations.
+Deep research is the flagship Feynman workflow. For broad topics, it can call researcher agents in parallel to search academic papers, web sources, and code repositories, then synthesize everything into a structured research brief with inline citations. Narrow explainers stay lead-owned and use direct searches.
 
 ## Usage
 
@@ -33,7 +33,7 @@ Third, Feynman reads and extracts key findings from the most relevant sources. I
 
 Fourth, a synthesis step cross-references findings across sources, identifies areas of consensus and disagreement, and organizes the material into a coherent narrative. The output is written as a research brief with sections for background, key findings, open questions, and references.
 
-Finally, Feynman verifies claims against cited sources to flag misattributions or unsupported assertions. The finished report and provenance sidecar are saved under `outputs/` and can be previewed as rendered HTML with `/preview`.
+Finally, Feynman verifies claims against cited sources to flag misattributions or unsupported assertions. The finished report and provenance sidecar are saved under `outputs/` and can be previewed as rendered HTML when a preview command is visible, or opened/rendered with shell tools such as `pandoc`.
 
 ## Output format
 

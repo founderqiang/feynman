@@ -111,13 +111,31 @@ $ feynman deepresearch "mechanistic interpretability"
 → Multi-agent investigation with parallel researchers, synthesis, verification
 
 $ feynman lit "RLHF alternatives"
-→ Literature review with consensus, disagreements, open questions
+→ Literature review with consensus, disagreements, open questions, and lab/PI corpus mode when the input names a research group
+
+$ feynman rank "mechanistic interpretability sparse autoencoders"
+→ Decides what to read first with citation, method, reproducibility, and provenance evidence
+
+$ feynman rank "mechanistic interpretability sparse autoencoders" --expand-citations 2
+→ Adds cited and citing papers to the local citation graph before scoring graph prestige
+
+$ feynman rank "mechanistic interpretability sparse autoencoders" --full-text-top 3
+→ Adds section-aware full-text evidence and checklist rubric answers before rescoring
+
+$ feynman rank "mechanistic interpretability sparse autoencoders" --critique-top 5
+→ Adds research-critique strengths, concerns, and follow-up questions grounded in score evidence
+
+$ feynman rank "mechanistic interpretability sparse autoencoders" --synthesize
+→ Writes an auditable model synthesis and names the selected model plus whether it was recommended or explicitly requested
+
+$ feynman paper 10.7717/peerj.4375 --fetch-full-text
+→ Resolves legal full-text access candidates for one paper and fetches source-specific text when available
 
 $ feynman audit 2401.12345
 → Compares paper claims against the public codebase
 
 $ feynman replicate "chain-of-thought improves math"
-→ Replicates experiments on local or cloud GPUs
+→ Plans replication checks and runs them only after an explicit environment choice
 
 $ feynman recipe "fine-tune a small model for math reasoning"
 → Finds ranked, implementable ML training recipes from papers, datasets, docs, and code
@@ -131,26 +149,28 @@ Ask naturally or use slash commands as shortcuts.
 
 | Command | What it does |
 | --- | --- |
+| `feynman rank <topic>` | PaperRank scoring for deciding what to read first, with transparent evidence for citations, methods, reproducibility, and provenance |
+| `feynman paper <id-or-title>` | Paper access resolver for one DOI, arXiv ID, OpenAlex ID, PMID, PMCID, or title, with OpenAlex, arXiv/alphaXiv, DOI, and Europe PMC candidates plus optional source-specific text fetching |
 | `/deepresearch <topic>` | Source-heavy multi-agent investigation |
-| `/lit <topic>` | Literature review from paper search and primary sources |
-| `/review <artifact>` | Simulated peer review with severity and revision plan |
+| `/lit <topic-or-lab>` | Literature review from paper search and primary sources; lab/PI inputs map publication trajectories and originality-ranked papers |
+| `/review <artifact>` | Research review with severity and revision plan |
 | `/audit <item>` | Paper vs. codebase mismatch audit |
-| `/replicate <paper>` | Replicate experiments on local or cloud GPUs |
+| `/replicate <paper>` | Plan replication checks; execute only after choosing an environment |
 | `/recipe <task-or-paper>` | Ranked ML training recipes with dataset, method, code, and verification status |
 | `/compare <topic>` | Source comparison matrix |
 | `/draft <topic>` | Paper-style draft from research findings |
-| `/autoresearch <idea>` | Autonomous experiment loop |
-| `/watch <topic>` | Recurring research watch |
+| `/autoresearch <idea>` | Bounded experiment loop with benchmark evidence |
+| `/watch <topic>` | Research watch baseline with optional scheduled follow-up |
 | `/outputs` | Browse all research artifacts |
 
 ---
 
 ### Agents
 
-Four bundled research agents, dispatched automatically.
+Four bundled research agents, invoked by workflow prompts when decomposition helps.
 
 - **Researcher** — gather evidence across papers, web, repos, docs
-- **Reviewer** — simulated peer review with severity-graded feedback
+- **Reviewer** — internal research critique with severity-graded feedback
 - **Writer** — structured drafts from research notes
 - **Verifier** — inline citations, source URL verification, dead link cleanup
 
@@ -158,20 +178,19 @@ Four bundled research agents, dispatched automatically.
 
 ### Skills & Tools
 
-- **[AlphaXiv](https://www.alphaxiv.org/)** — paper search, Q&A, code reading, annotations (via `alpha` CLI)
+- **[AlphaXiv](https://www.alphaxiv.org/)** — paper search, Q&A, code reading, annotations (via Feynman's `alpha` tools and `feynman alpha` command)
 - **[Hugging Face Hub](https://huggingface.co/docs/hub/api)** — dataset metadata, split/schema inspection, and small file reads from model, dataset, and Space repos
-- **Docker** — isolated container execution for safe experiments on your machine
 - **Web search** — Exa, Perplexity, or Gemini API; no Chromium cookie access by default
 - **Session search** — indexed recall across prior research sessions
-- **Preview** — browser and PDF export of generated artifacts
-- **Modal** — serverless GPU compute for burst training and inference
-- **RunPod** — persistent GPU pods with SSH access for long-running experiments
+- **Preview dependencies** — optional browser/PDF rendering support for generated artifacts when preview commands or shell renderers are available
+- **Observability** — PostHog analytics, logs, distributed traces, and Pi AI runtime traces through OpenTelemetry metadata
+- **Research execution options** — Docker, Modal, and RunPod instructions for explicitly chosen replication, benchmark, or dataset-heavy experiment runs; not service deployment or generic cloud administration
 
 ---
 
 ### How it works
 
-Built on [Pi](https://github.com/badlogic/pi-mono) for the agent runtime, [alphaXiv](https://www.alphaxiv.org/) for paper search and analysis, and CLI tools for compute and execution. Runtime resources follow Pi's documented package model for [packages](https://github.com/badlogic/pi-mono/blob/main/packages/coding-agent/docs/packages.md), [extensions](https://github.com/badlogic/pi-mono/blob/main/packages/coding-agent/docs/extensions.md), and [skills](https://github.com/badlogic/pi-mono/blob/main/packages/coding-agent/docs/skills.md). Hugging Face inspection uses the public [Hub API endpoints](https://huggingface.co/docs/hub/api) and `HF_TOKEN` / `HUGGINGFACE_HUB_TOKEN` environment variables documented by [`huggingface_hub`](https://huggingface.co/docs/huggingface_hub/main/en/package_reference/environment_variables). The ML recipe workflow was informed by the open-source [Hugging Face `ml-intern`](https://github.com/huggingface/ml-intern) research-agent repo, but is implemented as native Feynman prompts, skills, and read-only tools. Every output is source-grounded — claims link to papers, docs, or repos with direct URLs.
+Built on [Pi](https://github.com/badlogic/pi-mono) for the agent runtime, [alphaXiv](https://www.alphaxiv.org/) for paper search and analysis, and CLI tools for compute and execution. Runtime resources follow Pi's documented package model for [packages](https://github.com/badlogic/pi-mono/blob/main/packages/coding-agent/docs/packages.md), [extensions](https://github.com/badlogic/pi-mono/blob/main/packages/coding-agent/docs/extensions.md), and [skills](https://github.com/badlogic/pi-mono/blob/main/packages/coding-agent/docs/skills.md). Hugging Face inspection uses the public [Hub API endpoints](https://huggingface.co/docs/hub/api) and `HF_TOKEN` / `HUGGINGFACE_HUB_TOKEN` environment variables documented by [`huggingface_hub`](https://huggingface.co/docs/huggingface_hub/main/en/package_reference/environment_variables). The ML recipe workflow was informed by the open-source [Hugging Face `ml-intern`](https://github.com/huggingface/ml-intern) research-agent repo, but is implemented as native Feynman prompts, skills, and read-only tools. Research outputs are source-grounded — research claims link to papers, docs, or repos with direct URLs.
 
 ---
 

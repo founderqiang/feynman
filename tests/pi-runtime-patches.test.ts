@@ -109,6 +109,23 @@ export function getSettingsListTheme() {
 }
 `;
 
+const PI_OTEL_CONFIG_SOURCE = `    const endpoint = process.env.OTEL_EXPORTER_OTLP_ENDPOINT ??
+        merged?.endpoint ??
+        "http://127.0.0.1:4317";
+    const protocol = normalizeProtocol(process.env.OTEL_EXPORTER_OTLP_PROTOCOL ?? merged?.protocol);
+    const headers = {
+        ...(merged?.headers ?? {}),
+        ...parseKvList(process.env.OTEL_EXPORTER_OTLP_HEADERS),
+    };`;
+
+const SESSION_SEARCH_INDEXER_SOURCE = `
+export async function indexAllSessions() {
+    const sessionsDir = path.join(os.homedir(), ".pi", "agent", "sessions");
+    const files = findSessionFiles(sessionsDir);
+    return files.length;
+}
+`;
+
 const ALPHA_SEARCH_SOURCE = `
 function getErrorMessage(err) {
   return err instanceof Error ? err.message : String(err);
@@ -173,17 +190,27 @@ test("patchPiRuntimeNodeModules patches installed Pi runtime files", async () =>
 	const tuiPath = join(appRoot, "node_modules", "@earendil-works", "pi-tui", "dist", "tui.js");
 	const editorPath = join(appRoot, "node_modules", "@earendil-works", "pi-tui", "dist", "components", "editor.js");
 	const themePath = join(appRoot, "node_modules", "@earendil-works", "pi-coding-agent", "dist", "modes", "interactive", "theme", "theme.js");
+	const packageJsonPath = join(appRoot, "node_modules", "@earendil-works", "pi-coding-agent", "package.json");
 	const alphaSearchPath = join(appRoot, "node_modules", "@companion-ai", "alpha-hub", "src", "lib", "alphaxiv.js");
+	const sessionSearchPath = join(appRoot, "node_modules", "@kaiserlich-dev", "pi-session-search", "extensions", "indexer.ts");
 	await mkdir(dirname(agentLoopPath), { recursive: true });
 	await mkdir(dirname(tuiPath), { recursive: true });
 	await mkdir(dirname(editorPath), { recursive: true });
 	await mkdir(dirname(themePath), { recursive: true });
+	await mkdir(dirname(packageJsonPath), { recursive: true });
 	await mkdir(dirname(alphaSearchPath), { recursive: true });
+	await mkdir(dirname(sessionSearchPath), { recursive: true });
 	writeFileSync(agentLoopPath, SOURCE, "utf8");
 	writeFileSync(tuiPath, TUI_SOURCE, "utf8");
 	writeFileSync(editorPath, EDITOR_SOURCE, "utf8");
 	writeFileSync(themePath, THEME_SOURCE, "utf8");
+	writeFileSync(
+		packageJsonPath,
+		JSON.stringify({ name: "@earendil-works/pi-coding-agent", piConfig: { configDir: ".pi" } }, null, 2) + "\n",
+		"utf8",
+	);
 	writeFileSync(alphaSearchPath, ALPHA_SEARCH_SOURCE, "utf8");
+	writeFileSync(sessionSearchPath, SESSION_SEARCH_INDEXER_SOURCE, "utf8");
 
 	assert.equal(patchPiRuntimeNodeModules(appRoot), true);
 
@@ -198,7 +225,11 @@ test("patchPiRuntimeNodeModules patches installed Pi runtime files", async () =>
 	assert.doesNotMatch(patchedTui, /throw new Error\(errorMsg\)/);
 	assert.match(readFileSync(editorPath, "utf8"), /displayText = styleInput\(before\) \+ marker \+ styleInput\(after\)/);
 	assert.match(readFileSync(themePath, "utf8"), /input: \(text\) => theme\.fg\("text", text\)/);
+	const patchedPackageJson = JSON.parse(readFileSync(packageJsonPath, "utf8")) as { piConfig?: Record<string, unknown> };
+	assert.equal(patchedPackageJson.piConfig?.name, "feynman");
+	assert.equal(patchedPackageJson.piConfig?.configDir, ".feynman");
 	assert.match(readFileSync(alphaSearchPath, "utf8"), /async function searchRestFast/);
+	assert.match(readFileSync(sessionSearchPath, "utf8"), /process\.env\.FEYNMAN_SESSION_DIR/);
 	assert.equal(patchPiRuntimeNodeModules(appRoot), false);
 });
 
@@ -208,20 +239,33 @@ test("patchPiRuntimeNodeModules patches the vendored runtime workspace", async (
 	const tuiPath = join(appRoot, ".feynman", "npm", "node_modules", "@mariozechner", "pi-tui", "dist", "tui.js");
 	const editorPath = join(appRoot, ".feynman", "npm", "node_modules", "@mariozechner", "pi-tui", "dist", "components", "editor.js");
 	const themePath = join(appRoot, ".feynman", "npm", "node_modules", "@mariozechner", "pi-coding-agent", "dist", "modes", "interactive", "theme", "theme.js");
+	const packageJsonPath = join(appRoot, ".feynman", "npm", "node_modules", "@mariozechner", "pi-coding-agent", "package.json");
 	const webAccessPath = join(appRoot, ".feynman", "npm", "node_modules", "pi-web-access", "index.ts");
 	const subagentSpawnPath = join(appRoot, ".feynman", "npm", "node_modules", "pi-subagents", "src", "runs", "shared", "pi-spawn.ts");
+	const piOtelConfigPath = join(appRoot, ".feynman", "npm", "node_modules", "pi-otel", "dist", "config.js");
+	const sessionSearchPath = join(appRoot, ".feynman", "npm", "node_modules", "@kaiserlich-dev", "pi-session-search", "extensions", "indexer.ts");
 	await mkdir(dirname(agentLoopPath), { recursive: true });
 	await mkdir(dirname(tuiPath), { recursive: true });
 	await mkdir(dirname(editorPath), { recursive: true });
 	await mkdir(dirname(themePath), { recursive: true });
+	await mkdir(dirname(packageJsonPath), { recursive: true });
 	await mkdir(dirname(webAccessPath), { recursive: true });
 	await mkdir(dirname(subagentSpawnPath), { recursive: true });
+	await mkdir(dirname(piOtelConfigPath), { recursive: true });
+	await mkdir(dirname(sessionSearchPath), { recursive: true });
 	writeFileSync(agentLoopPath, SOURCE, "utf8");
 	writeFileSync(tuiPath, TUI_SOURCE, "utf8");
 	writeFileSync(editorPath, EDITOR_SOURCE, "utf8");
 	writeFileSync(themePath, THEME_SOURCE, "utf8");
+	writeFileSync(
+		packageJsonPath,
+		JSON.stringify({ name: "@mariozechner/pi-coding-agent", piConfig: { configDir: ".pi" } }, null, 2) + "\n",
+		"utf8",
+	);
 	writeFileSync(webAccessPath, WEB_ACCESS_INDEX_SOURCE, "utf8");
 	writeFileSync(subagentSpawnPath, SUBAGENT_PI_SPAWN_SOURCE, "utf8");
+	writeFileSync(piOtelConfigPath, PI_OTEL_CONFIG_SOURCE, "utf8");
+	writeFileSync(sessionSearchPath, SESSION_SEARCH_INDEXER_SOURCE, "utf8");
 
 	assert.equal(patchPiRuntimeNodeModules(appRoot), true);
 
@@ -229,11 +273,17 @@ test("patchPiRuntimeNodeModules patches the vendored runtime workspace", async (
 	assert.match(readFileSync(tuiPath, "utf8"), /line = sliceByColumn\(line, 0, width, true\)/);
 	assert.match(readFileSync(editorPath, "utf8"), /displayText = styleInput\(before\) \+ marker \+ styleInput\(after\)/);
 	assert.match(readFileSync(themePath, "utf8"), /input: \(text\) => theme\.fg\("text", text\)/);
+	const patchedPackageJson = JSON.parse(readFileSync(packageJsonPath, "utf8")) as { piConfig?: Record<string, unknown> };
+	assert.equal(patchedPackageJson.piConfig?.name, "feynman");
+	assert.equal(patchedPackageJson.piConfig?.configDir, ".feynman");
 	assert.match(readFileSync(webAccessPath, "utf8"), /params\.workflow \?\? configWorkflow \?\? "none"/);
 	assert.match(readFileSync(webAccessPath, "utf8"), /pi\.registerCommand\("web-results"/);
 	assert.match(readFileSync(subagentSpawnPath, "utf8"), /process\.env\.FEYNMAN_PI_CLI_PATH/);
 	assert.match(readFileSync(subagentSpawnPath, "utf8"), /\targv2\?: string;/);
 	assert.match(readFileSync(subagentSpawnPath, "utf8"), /path\.basename\(argvPath\) !== "pi-cli-wrapper\.js"/);
+	assert.match(readFileSync(piOtelConfigPath, "utf8"), /process\.env\.OTEL_EXPORTER_OTLP_TRACES_ENDPOINT \?\?/);
+	assert.match(readFileSync(piOtelConfigPath, "utf8"), /process\.env\.OTEL_EXPORTER_OTLP_TRACES_HEADERS/);
+	assert.match(readFileSync(sessionSearchPath, "utf8"), /process\.env\.FEYNMAN_SESSION_DIR/);
 	assert.equal(patchPiRuntimeNodeModules(appRoot), false);
 });
 
@@ -263,10 +313,49 @@ test("patchPiRuntimeNodeModules patches Feynman user and Pi agent package roots"
 		"shared",
 		"pi-spawn.ts",
 	);
+	const globalOtelConfigPath = join(
+		homeRoot,
+		".feynman",
+		"npm-global",
+		"lib",
+		"node_modules",
+		"pi-otel",
+		"dist",
+		"config.js",
+	);
+	const agentOtelConfigPath = join(agentDir, "npm", "node_modules", "pi-otel", "dist", "config.js");
+	const globalSessionSearchPath = join(
+		homeRoot,
+		".feynman",
+		"npm-global",
+		"lib",
+		"node_modules",
+		"@kaiserlich-dev",
+		"pi-session-search",
+		"extensions",
+		"indexer.ts",
+	);
+	const agentSessionSearchPath = join(
+		agentDir,
+		"npm",
+		"node_modules",
+		"@kaiserlich-dev",
+		"pi-session-search",
+		"extensions",
+		"indexer.ts",
+	);
 	await mkdir(dirname(globalSpawnPath), { recursive: true });
 	await mkdir(dirname(agentSpawnPath), { recursive: true });
+	await mkdir(dirname(globalOtelConfigPath), { recursive: true });
+	await mkdir(dirname(agentOtelConfigPath), { recursive: true });
+	await mkdir(dirname(globalSessionSearchPath), { recursive: true });
+	await mkdir(dirname(agentSessionSearchPath), { recursive: true });
 	writeFileSync(globalSpawnPath, SUBAGENT_PI_SPAWN_SOURCE, "utf8");
 	writeFileSync(agentSpawnPath, SUBAGENT_PI_SPAWN_SOURCE, "utf8");
+	writeFileSync(globalOtelConfigPath, PI_OTEL_CONFIG_SOURCE, "utf8");
+	writeFileSync(agentOtelConfigPath, PI_OTEL_CONFIG_SOURCE, "utf8");
+	writeFileSync(globalSessionSearchPath, SESSION_SEARCH_INDEXER_SOURCE, "utf8");
+	writeFileSync(agentSessionSearchPath, SESSION_SEARCH_INDEXER_SOURCE, "utf8");
 
 	assert.equal(patchPiRuntimeNodeModules(appRoot, agentDir), true);
 
@@ -275,6 +364,16 @@ test("patchPiRuntimeNodeModules patches Feynman user and Pi agent package roots"
 		assert.match(source, /process\.env\.FEYNMAN_PI_CLI_PATH/);
 		assert.match(source, /\targv2\?: string;/);
 		assert.match(source, /wrapperPiCliPath/);
+	}
+	for (const configPath of [globalOtelConfigPath, agentOtelConfigPath]) {
+		const source = readFileSync(configPath, "utf8");
+		assert.match(source, /process\.env\.OTEL_EXPORTER_OTLP_TRACES_ENDPOINT \?\?/);
+		assert.match(source, /process\.env\.OTEL_EXPORTER_OTLP_TRACES_HEADERS/);
+	}
+	for (const indexerPath of [globalSessionSearchPath, agentSessionSearchPath]) {
+		const source = readFileSync(indexerPath, "utf8");
+		assert.match(source, /process\.env\.FEYNMAN_SESSION_DIR/);
+		assert.match(source, /process\.env\.PI_SESSION_DIR/);
 	}
 	assert.equal(patchPiRuntimeNodeModules(appRoot, agentDir), false);
 });

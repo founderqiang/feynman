@@ -10,6 +10,7 @@ import { NATIVE_PACKAGE_SOURCES, supportsNativePackageSources } from "./package-
 
 export { resolveAdjacentNpmCommand };
 import { applyFeynmanPackageManagerEnv, getFeynmanNpmPrefixPath } from "./runtime.js";
+import { patchPiRuntimeNodeModules } from "./runtime-patches.js";
 import { getPathWithCurrentNode, resolveExecutable } from "../system/executables.js";
 
 type PackageScope = "user" | "project";
@@ -57,7 +58,7 @@ const FILTERED_INSTALL_OUTPUT_PATTERNS = [
 	/^run `npm fund` for details$/i,
 ];
 const APP_ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "..", "..");
-const PI_RUNTIME_FALLBACK_VERSION = "0.79.1";
+const PI_RUNTIME_FALLBACK_VERSION = "0.79.10";
 const LEGACY_PI_RUNTIME_PACKAGE_ALIASES = {
 	"@mariozechner/pi-agent-core": "@earendil-works/pi-agent-core",
 	"@mariozechner/pi-ai": "@earendil-works/pi-ai",
@@ -168,22 +169,26 @@ function isPiRuntimePackageName(packageName: string): boolean {
 	return packageName.startsWith("pi-") || packageName.includes("/pi-");
 }
 
-function readInstalledPackageVersion(packageRoot: string): string | undefined {
-	try {
-		const pkg = JSON.parse(readFileSync(resolve(packageRoot, "package.json"), "utf8")) as { version?: unknown };
-		return typeof pkg.version === "string" ? pkg.version : undefined;
-	} catch {
-		return undefined;
-	}
-}
-
 function resolveRuntimePeerSpec(packageName: string): string | undefined {
 	for (const packageRoot of [
 		resolve(APP_ROOT, "node_modules", packageName),
 		resolve(APP_ROOT, ".feynman", "npm", "node_modules", packageName),
 	]) {
-		const version = readInstalledPackageVersion(packageRoot);
-		if (version) return `${packageName}@${version}`;
+		try {
+			const pkg = JSON.parse(readFileSync(resolve(packageRoot, "package.json"), "utf8")) as {
+				name?: unknown;
+				version?: unknown;
+			};
+			const version = typeof pkg.version === "string" ? pkg.version : undefined;
+			if (!version) continue;
+			const installedName = typeof pkg.name === "string" ? pkg.name : undefined;
+			if (installedName && installedName !== packageName) {
+				return `${packageName}@npm:${installedName}@${version}`;
+			}
+			return `${packageName}@${version}`;
+		} catch {
+			continue;
+		}
 	}
 
 	const aliasTarget = LEGACY_PI_RUNTIME_PACKAGE_ALIASES[packageName as keyof typeof LEGACY_PI_RUNTIME_PACKAGE_ALIASES];
@@ -293,7 +298,6 @@ async function runPackageManagerInstall(
 	}
 
 	args.push(...withRuntimePeerSpecs(specs));
-	const suppressKnownNativeFailureOutput = process.platform === "darwin" && specs.some((spec) => spec.startsWith("pi-generative-ui"));
 
 	await new Promise<void>((resolvePromise, reject) => {
 		const child = spawn(packageManagerCommand.command, args, {
@@ -304,27 +308,15 @@ async function runPackageManagerInstall(
 		});
 
 		child.stdout?.on("data", (chunk) => {
-			if (!suppressKnownNativeFailureOutput) {
-				relayFilteredOutput(chunk, process.stdout);
-			}
+			relayFilteredOutput(chunk, process.stdout);
 		});
 		child.stderr?.on("data", (chunk) => {
-			if (!suppressKnownNativeFailureOutput) {
-				relayFilteredOutput(chunk, process.stderr);
-			}
+			relayFilteredOutput(chunk, process.stderr);
 		});
 
 		child.on("error", reject);
 		child.on("exit", (code) => {
 			if ((code ?? 1) !== 0) {
-				if (suppressKnownNativeFailureOutput) {
-					reject(
-						new Error(
-							"Installing pi-generative-ui failed. Its native glimpseui dependency did not compile against the current macOS/Xcode toolchain. Try the npm-installed Feynman path with your local Node toolchain or skip this optional preset for now.",
-						),
-					);
-					return;
-				}
 				reject(new Error(`${packageManagerCommand.command} install failed with code ${code ?? 1}`));
 				return;
 			}
@@ -339,6 +331,10 @@ function groupConfiguredNpmSources(packages: ConfiguredPackage[]): Record<Packag
 		user: packages.filter((entry) => entry.scope === "user").map((entry) => entry.source),
 		project: packages.filter((entry) => entry.scope === "project").map((entry) => entry.source),
 	};
+}
+
+function patchInstalledPackageRoots(agentDir: string): void {
+	patchPiRuntimeNodeModules(APP_ROOT, agentDir);
 }
 
 function isBundledWorkspacePackagePath(installedPath: string | undefined, appRoot: string): boolean {
@@ -431,6 +427,10 @@ export async function installPackageSources(
 		await settingsManager.flush();
 	}
 
+	if (installed.length > 0) {
+		patchInstalledPackageRoots(agentDir);
+	}
+
 	return { installed, skipped };
 }
 
@@ -456,10 +456,12 @@ export async function updateConfiguredPackages(
 			}
 
 			await runPackageManagerInstall(settingsManager, workingDir, agentDir, match.scope, dedupeNpmSources([source], true));
+			patchInstalledPackageRoots(agentDir);
 			return { updated: [source], skipped: [] };
 		}
 
 		await packageManager.update(source);
+		patchInstalledPackageRoots(agentDir);
 		return { updated: [source], skipped: [] };
 	}
 
@@ -496,12 +498,14 @@ export async function updateConfiguredPackages(
 		await packageManager.update(gitSource);
 	}
 
-	return {
-		updated: availableUpdates
-			.map((entry) => entry.source)
-			.filter((source) => !skipped.includes(source)),
-		skipped,
-	};
+	const updated = availableUpdates
+		.map((entry) => entry.source)
+		.filter((source) => !skipped.includes(source));
+	if (updated.length > 0) {
+		patchInstalledPackageRoots(agentDir);
+	}
+
+	return { updated, skipped };
 }
 
 function ensureParentDir(path: string): void {

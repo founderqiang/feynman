@@ -146,6 +146,19 @@ function applyReplacementGroups(source, groups) {
 	return patched;
 }
 
+function patchTaskSchemaOutputParam(source) {
+	if (source.includes("\toutput: Type.Optional(Type.Any")) {
+		return source;
+	}
+	return source.replace(
+		/^(\tmodel: Type\.Optional\(Type\.String\(\{ description: "Override model for this task \(e\.g\. '[^']+'\)" \}\)\),)$/m,
+		[
+			'\toutput: Type.Optional(Type.Any({ description: "Output file for this parallel task (string), or false to disable. Relative paths resolve against cwd." })),',
+			"$1",
+		].join("\n"),
+	);
+}
+
 const OLD_AGENT_DIR_DECLS = [
 	'\tconst userDirOld = path.join(os.homedir(), ".pi", "agent", "agents");',
 	'\tconst userDirNew = path.join(os.homedir(), ".agents");',
@@ -415,20 +428,8 @@ export function patchPiSubagentsSource(relativePath, source) {
 			}
 			break;
 		case "schemas.ts":
+			patched = patchTaskSchemaOutputParam(patched);
 			patched = applyReplacementGroup(patched, [
-				[
-					[
-						"\tcwd: Type.Optional(Type.String()),",
-						'\tcount: Type.Optional(Type.Integer({ minimum: 1, description: "Repeat this parallel task N times with the same settings." })),',
-						'\tmodel: Type.Optional(Type.String({ description: "Override model for this task (e.g. \'google/gemini-3-pro\')" })),',
-					].join("\n"),
-					[
-						"\tcwd: Type.Optional(Type.String()),",
-						'\tcount: Type.Optional(Type.Integer({ minimum: 1, description: "Repeat this parallel task N times with the same settings." })),',
-						'\toutput: Type.Optional(Type.Any({ description: "Output file for this parallel task (string), or false to disable. Relative paths resolve against cwd." })),',
-						'\tmodel: Type.Optional(Type.String({ description: "Override model for this task (e.g. \'google/gemini-3-pro\')" })),',
-					].join("\n"),
-				],
 				[
 					'tasks: Type.Optional(Type.Array(TaskItem, { description: "PARALLEL mode: [{agent, task, count?}, ...]" })),',
 					'tasks: Type.Optional(Type.Array(TaskItem, { description: "PARALLEL mode: [{agent, task, count?, output?}, ...]" })),',

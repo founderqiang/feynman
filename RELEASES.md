@@ -4,6 +4,40 @@ This file is the public release history for Feynman. Keep entries user-facing: w
 
 GitHub release notes are generated from the matching `## vX.Y.Z` section in this file.
 
+## v0.3.4 - 2026-06-12
+
+### Research
+
+- Added `feynman paper <id-or-title>` for single-paper access resolution. It writes Markdown and JSON access reports, records legal candidates from OpenAlex, DOI, PMID/PMCID, arXiv/alphaXiv, and Europe PMC, and can fetch source-specific text with `--fetch-full-text` while keeping raw full-text bodies out of artifacts.
+- Added `feynman rank <topic>`, the first PaperRank workflow. It fetches OpenAlex paper metadata, ranks candidates for read-first triage with transparent scores for topical fit, citation influence, graph prestige, citation velocity, methodology evidence, and reproducibility evidence, then writes auditable artifacts under `outputs/`.
+- PaperRank's core user job is read-order triage: answer "what should I read first, and why?" with a ranked brief, per-paper score audit, JSONL data, local citation/field structure, and provenance.
+- Added research-loop artifacts that stay tied to that job: a ranked brief, score audit, JSONL score/data, rank-sensitivity checks, local citation graph/explorer, field map, and provenance by default. Optional flags add citation-neighborhood expansion, source-specific full-text enrichment, research critique, empirical preference calibration templates, reproduction-evidence ledgers/templates/replication plans, or bounded model synthesis.
+- PaperRank does not claim completed replication or peer review. It keeps raw full-text bodies out of generated artifacts, records model-selection provenance for synthesis, and labels uncalibrated or missing evidence explicitly.
+
+### Model Catalog
+
+- Fixed research model selection so recommended/default model paths, stale settings, model lists, and explicit CLI overrides reject Pro-class model IDs and keep OpenAI-only installs on the newest available non-Pro GPT model exposed by Pi. Updated LiteLLM setup fallback and setup/configuration docs to avoid GPT-4-era, stale, and premium-tier defaults.
+- Added model-selection provenance to PaperRank synthesis so normal CLI output, JSON output, generated synthesis Markdown, and rank provenance name the actual model and whether it came from the current recommendation path or an explicit override.
+
+### AlphaXiv
+
+- Hardened shell-based alphaXiv access through `feynman alpha ...` so Feynman uses its bundled patched alphaXiv client instead of stale global `alpha` or `feynman` binaries inside agent bash sessions.
+
+### Pi Runtime
+
+- Refreshed the bundled Pi runtime from `0.79.1` to `0.79.10` across all four packages (`pi-coding-agent`, `pi-agent-core`, `pi-ai`, `pi-tui`) and aligned Feynman's packaged fallback/runtime-peer seeding to the same version, so clean installs and bundled runtime rebuilds no longer lag behind the latest published Pi patch line. This inherits Pi's compaction-event context, safer exact-version update flow, nested-repo `find` fix, and OpenAI-compatible `reasoning_details` streaming fix.
+- Updated the production dependency overrides for `hono`, `protobufjs`, `undici`, and `ws` so `npm audit --omit=dev` is clean after the Pi refresh.
+- Fixed session rename crashes when long slash-workflow names overflowed the custom header. Header workflow names are now clipped to their column in both wide and narrow layouts before descriptions are rendered.
+- Removed the old `generative-ui`, `ui`, and `all-extras` optional package/update targets. Optional packages now stay one-by-one and research-continuity focused.
+
+### Website
+
+- Updated the website's in-range stale package set (`@tailwindcss/vite`, `tailwindcss`, `lucide-react`, and `eslint`) after the dependency freshness sweep.
+
+### Validation
+
+- Re-ran the full local validation sweep after the version refresh: tests, typecheck, build, package dry-run, CLI version smoke, production audits, and website build.
+
 ## v0.3.3 - 2026-06-12
 
 ### Windows
@@ -110,13 +144,13 @@ GitHub release notes are generated from the matching `## vX.Y.Z` section in this
 
 ### Optional Packages
 
-- Added a `hindsight` optional preset that installs `@luxusai/pi-hindsight`, giving users a first-class path to Hindsight-backed long-term memory without adding it to the default install.
+- Added a `hindsight` optional preset that installs `@luxusai/pi-hindsight`, giving users a first-class path to Hindsight-backed research-continuity memory without adding it to the default install.
 - Added `hindsight` and `pi-hindsight` update aliases so `feynman update hindsight` resolves to the same package source.
 - Updated the package-stack and setup docs to show Hindsight as an optional memory surface and note that it requires a Hindsight server or Hindsight Cloud account.
 
 ### Validation
 
-- Added regression coverage for the new optional preset, `all-extras` expansion, and update aliases.
+- Added regression coverage for the new optional preset, research-continuity package copy, removed bulk/UI presets, and update aliases.
 
 ## v0.2.57 - 2026-05-15
 
@@ -143,13 +177,13 @@ GitHub release notes are generated from the matching `## vX.Y.Z` section in this
 
 ### Model Catalog
 
-- Added OpenAI `gpt-5.5` to Feynman's research model preference order so it can be recommended, auto-selected, and surfaced ahead of older OpenAI GPT-5 models.
-- Added OpenAI Codex `gpt-5.5` to the research preference order for users whose Pi runtime exposes Codex directly.
-- Updated first-run/default setup preferences so OpenAI-only installs choose `openai/gpt-5.5` when available.
+- Updated Feynman's research model preference order so the newest available non-Pro OpenAI GPT model can be recommended, auto-selected, and surfaced ahead of older OpenAI GPT models.
+- Applied the same newest-available non-Pro GPT preference to OpenAI Codex when Pi exposes Codex directly.
+- Updated first-run/default setup preferences so OpenAI-only installs choose the newest available non-Pro OpenAI GPT model when available.
 
 ### Validation
 
-- Added regression coverage for OpenAI `gpt-5.5` recommendation, model sorting, and default setup seeding.
+- Added regression coverage for newest-available non-Pro OpenAI recommendation, model sorting, and default setup seeding.
 
 ## v0.2.54 - 2026-05-11
 
@@ -438,7 +472,7 @@ GitHub release notes are generated from the matching `## vX.Y.Z` section in this
 
 ### Documentation
 
-- Updated peer review docs to describe the concrete output files and blocked-extraction behavior.
+- Updated research review docs to describe the concrete output files and blocked-extraction behavior.
 - Updated package docs to clarify that memory and session search are core packages and `generative-ui` is macOS-only upstream.
 
 ### Validation

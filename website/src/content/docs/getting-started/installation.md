@@ -158,7 +158,7 @@ After installation, run the guided setup wizard to configure your model provider
 feynman setup
 ```
 
-This walks you through selecting a default model, authenticating with your provider, and optionally installing extra packages for features like web search and document preview. See the [Setup guide](/docs/getting-started/setup) for a detailed walkthrough.
+This walks you through selecting a non-Pro default model, authenticating with your provider, and optionally installing research-continuity extras such as memory or session search. See the [Setup guide](/docs/getting-started/setup) for a detailed walkthrough.
 
 ## Verifying the installation
 
