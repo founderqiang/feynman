@@ -3,6 +3,8 @@ import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { XMLParser } from "fast-xml-parser";
 
+import { buildResearchRunId, createResearchArtifact, validateResearchRun, type ResearchArtifact, type ResearchRun } from "../research/contracts.js";
+
 export const DEFAULT_RANK_LIMIT = 25;
 export const MAX_RANK_LIMIT = 100;
 export const DEFAULT_FULL_TEXT_TOP = 0;
@@ -951,6 +953,7 @@ export type ModelSynthesisResponse = {
 export type ModelSynthesizer = (request: ModelSynthesisRequest) => Promise<ModelSynthesisResponse>;
 
 export type PaperRankArtifacts = {
+	researchRunPath: string;
 	reportPath: string;
 	papersPath: string;
 	scoresPath: string;
@@ -4718,6 +4721,7 @@ function writePaperRankArtifacts(input: {
 	citationExpansion: CitationExpansionSummary;
 }): PaperRankArtifacts {
 	mkdirSync(input.outputDir, { recursive: true });
+	const researchRunPath = resolve(input.outputDir, `${input.slug}-research-run.json`);
 	const reportPath = resolve(input.outputDir, `${input.slug}-paper-rank.md`);
 	const papersPath = resolve(input.outputDir, `${input.slug}-papers.jsonl`);
 	const scoresPath = resolve(input.outputDir, `${input.slug}-scores.jsonl`);
@@ -4737,6 +4741,33 @@ function writePaperRankArtifacts(input: {
 	const critiquePath = input.critiques.length > 0 ? resolve(input.outputDir, `${input.slug}-critique.md`) : undefined;
 	const modelSynthesisPath = input.synthesis.status === "generated" && input.synthesis.text ? resolve(input.outputDir, `${input.slug}-model-synthesis.md`) : undefined;
 	const provenancePath = resolve(input.outputDir, `${input.slug}-rank.provenance.md`);
+	const artifacts: PaperRankArtifacts = {
+		researchRunPath,
+		reportPath,
+		papersPath,
+		scoresPath,
+		scoreAuditPath,
+		sensitivityPath,
+		graphPath,
+		graphExplorerPath,
+		fieldMapPath,
+		provenancePath,
+		...(calibrationPath ? { calibrationPath } : {}),
+		...(calibrationTemplatePath ? { calibrationTemplatePath } : {}),
+		...(calibrationGuidePath ? { calibrationGuidePath } : {}),
+		...(reproductionLedgerPath ? { reproductionLedgerPath } : {}),
+		...(reproductionTemplatePath ? { reproductionTemplatePath } : {}),
+		...(replicationPlanPath ? { replicationPlanPath } : {}),
+		...(synthesisPacketPath ? { synthesisPacketPath } : {}),
+		...(synthesisPromptPath ? { synthesisPromptPath } : {}),
+		...(critiquePath ? { critiquePath } : {}),
+		...(modelSynthesisPath ? { modelSynthesisPath } : {}),
+	};
+	const researchRun = buildPaperRankResearchRun(input, artifacts);
+	const researchRunValidation = validateResearchRun(researchRun);
+	if (!researchRunValidation.valid) {
+		throw new Error(`Invalid PaperRank ResearchRun manifest: ${researchRunValidation.errors.join("; ")}`);
+	}
 
 	writeFileSync(reportPath, renderRankReport(input), "utf8");
 	writeFileSync(papersPath, input.papers.map((paper) => JSON.stringify(serializePaperRecord(paper))).join("\n") + "\n", "utf8");
@@ -4757,27 +4788,187 @@ function writePaperRankArtifacts(input: {
 	if (critiquePath) writeFileSync(critiquePath, renderCritiqueReport(input), "utf8");
 	if (modelSynthesisPath && input.synthesis.text) writeFileSync(modelSynthesisPath, renderModelSynthesisReport(input), "utf8");
 	writeFileSync(provenancePath, renderRankProvenance(input), "utf8");
+	writeFileSync(researchRunPath, JSON.stringify(researchRun, null, 2) + "\n", "utf8");
+
+	return artifacts;
+}
+
+function definedArtifact(artifact: ResearchArtifact | undefined): artifact is ResearchArtifact {
+	return artifact !== undefined;
+}
+
+function buildPaperRankResearchRun(input: {
+	topic: string;
+	slug: string;
+	generatedAt: string;
+	outputDir: string;
+	source: "openalex" | "fixture";
+	sourceUrl: string;
+	sourceMeta?: JsonRecord;
+	papers: PaperRecord[];
+	graphPapers: PaperRecord[];
+	graph: CitationGraph;
+	scores: PaperScore[];
+	critiques: PaperCritique[];
+	fieldMap: FieldMap;
+	sensitivity: RankSensitivity;
+	calibration: ScoreCalibration;
+	reproduction: ReproductionEvidenceLedger;
+	nextResearchActions: NextResearchActions;
+	synthesisPacket: ModelSynthesisPacket;
+	synthesisPrompt: string;
+	synthesis: ModelSynthesisOutcome;
+	fullTextTop: number;
+	citationExpansion: CitationExpansionSummary;
+}, artifacts: PaperRankArtifacts): ResearchRun {
+	const papersById = new Map(input.papers.map((paper) => [paper.paperId, paper]));
+	const rolesByPaper = new Map(input.fieldMap.paperRoles.map((role) => [role.paperId, role.roles]));
+	const reproductionByPaper = new Map(input.reproduction.papers.map((paper) => [paper.paperId, paper]));
+	const researchArtifacts = [
+		createResearchArtifact({ kind: "manifest", path: artifacts.researchRunPath, label: "ResearchRun manifest", role: "research_run_manifest", format: "application/json" }),
+		createResearchArtifact({ kind: "report", path: artifacts.reportPath, label: "PaperRank ranked brief", role: "primary_ranked_brief", primary: true, format: "text/markdown" }),
+		createResearchArtifact({ kind: "jsonl", path: artifacts.papersPath, label: "normalized papers", role: "paper_records", format: "application/jsonl" }),
+		createResearchArtifact({ kind: "jsonl", path: artifacts.scoresPath, label: "component scores", role: "score_records", format: "application/jsonl" }),
+		createResearchArtifact({ kind: "audit", path: artifacts.scoreAuditPath, label: "score audit", role: "score_explanation", format: "text/markdown" }),
+		createResearchArtifact({ kind: "json", path: artifacts.sensitivityPath, label: "rank sensitivity", role: "weight_sensitivity", format: "application/json" }),
+		createResearchArtifact({ kind: "graph", path: artifacts.graphPath, label: "citation graph", role: "citation_graph", format: "application/json" }),
+		createResearchArtifact({ kind: "html", path: artifacts.graphExplorerPath, label: "graph explorer", role: "graph_visualizer", format: "text/html" }),
+		createResearchArtifact({ kind: "json", path: artifacts.fieldMapPath, label: "field map", role: "field_structure", format: "application/json" }),
+		createResearchArtifact({ kind: "provenance", path: artifacts.provenancePath, label: "rank provenance", role: "source_accounting", format: "text/markdown" }),
+		createResearchArtifact({ kind: "json", path: artifacts.calibrationPath, label: "score calibration", role: "read_order_calibration", format: "application/json" }),
+		createResearchArtifact({ kind: "template", path: artifacts.calibrationTemplatePath, label: "calibration template", role: "read_order_preference_template", format: "application/json" }),
+		createResearchArtifact({ kind: "report", path: artifacts.calibrationGuidePath, label: "calibration guide", role: "read_order_calibration_instructions", format: "text/markdown" }),
+		createResearchArtifact({ kind: "ledger", path: artifacts.reproductionLedgerPath, label: "reproduction ledger", role: "completed_reproduction_evidence", format: "application/json" }),
+		createResearchArtifact({ kind: "template", path: artifacts.reproductionTemplatePath, label: "reproduction notes template", role: "reproduction_evidence_template", format: "application/json" }),
+		createResearchArtifact({ kind: "plan", path: artifacts.replicationPlanPath, label: "replication plan", role: "reproduction_plan", format: "text/markdown" }),
+		createResearchArtifact({ kind: "json", path: artifacts.synthesisPacketPath, label: "model synthesis packet", role: "bounded_model_handoff", format: "application/json" }),
+		createResearchArtifact({ kind: "prompt", path: artifacts.synthesisPromptPath, label: "model synthesis prompt", role: "bounded_model_prompt", format: "text/markdown" }),
+		createResearchArtifact({ kind: "report", path: artifacts.critiquePath, label: "research critique", role: "deterministic_research_critique", format: "text/markdown" }),
+		createResearchArtifact({ kind: "model_output", path: artifacts.modelSynthesisPath, label: "model synthesis", role: "generated_synthesis", format: "text/markdown" }),
+	].filter(definedArtifact);
+
+	const fullTextAvailable = input.papers.filter((paper) => paper.fullTextStatus === "available").length;
+	const fullTextAttempted = input.papers.filter((paper) => Boolean(paper.fullTextStatus)).length;
+	const tools = [
+		{
+			id: input.source === "fixture" ? "fixture.openalex" : "openalex.works",
+			kind: "source_adapter" as const,
+			label: input.source === "fixture" ? "OpenAlex fixture source" : "OpenAlex works search",
+			status: "completed" as const,
+			outputArtifacts: [artifacts.papersPath],
+			caveats: input.source === "fixture" ? ["Fixture source is deterministic test data, not live provider evidence."] : [],
+		},
+		{
+			id: "feynman.paper_rank.scoring",
+			kind: "rank_scorer" as const,
+			label: "PaperRank deterministic scoring",
+			status: "completed" as const,
+			outputArtifacts: [artifacts.scoresPath, artifacts.scoreAuditPath],
+			caveats: ["Methodology and reproducibility are screening signals; they are not completed claim validation."],
+		},
+		{
+			id: "feynman.paper_rank.field_map",
+			kind: "artifact_exporter" as const,
+			label: "Field map and citation graph artifacts",
+			status: "completed" as const,
+			outputArtifacts: [artifacts.fieldMapPath, artifacts.graphPath, artifacts.graphExplorerPath],
+		},
+		{
+			id: "feynman.paper_rank.full_text",
+			kind: "access_resolver" as const,
+			label: "source-specific full-text enrichment",
+			status: input.fullTextTop > 0 ? (fullTextAttempted > 0 ? "completed" as const : "partial" as const) : "not_run" as const,
+			outputArtifacts: [artifacts.papersPath, artifacts.scoresPath],
+			caveats: ["Raw full-text bodies are not written to PaperRank artifacts."],
+		},
+		...(input.synthesis.requested ? [{
+			id: "feynman.paper_rank.model_synthesis",
+			kind: "model" as const,
+			label: "bounded PaperRank model synthesis",
+			status: input.synthesis.status === "generated" ? "completed" as const : input.synthesis.status === "failed" ? "failed" as const : "partial" as const,
+			outputArtifacts: [artifacts.synthesisPacketPath, artifacts.synthesisPromptPath, artifacts.modelSynthesisPath].filter((path): path is string => Boolean(path)),
+			caveats: ["Deterministic artifacts remain the audit trail; generated synthesis is a narrative handoff."],
+		}] : []),
+	];
 
 	return {
-		reportPath,
-		papersPath,
-		scoresPath,
-		scoreAuditPath,
-		sensitivityPath,
-		graphPath,
-		graphExplorerPath,
-		fieldMapPath,
-		provenancePath,
-		...(calibrationPath ? { calibrationPath } : {}),
-		...(calibrationTemplatePath ? { calibrationTemplatePath } : {}),
-		...(calibrationGuidePath ? { calibrationGuidePath } : {}),
-		...(reproductionLedgerPath ? { reproductionLedgerPath } : {}),
-		...(reproductionTemplatePath ? { reproductionTemplatePath } : {}),
-		...(replicationPlanPath ? { replicationPlanPath } : {}),
-		...(synthesisPacketPath ? { synthesisPacketPath } : {}),
-		...(synthesisPromptPath ? { synthesisPromptPath } : {}),
-		...(critiquePath ? { critiquePath } : {}),
-		...(modelSynthesisPath ? { modelSynthesisPath } : {}),
+		schemaVersion: "feynman.researchRun.v1",
+		runId: buildResearchRunId({ workflow: "paper_rank", slug: input.slug, generatedAt: input.generatedAt }),
+		workflow: "paper_rank",
+		slug: input.slug,
+		topic: input.topic,
+		generatedAt: input.generatedAt,
+		status: "completed",
+		researchJobs: [
+			"discovering_prior_art",
+			"reading_paper_content",
+			"ranking_evidence",
+			"verifying_claims",
+			"planning_reproduction",
+			"synthesizing_artifacts",
+			"visualizing_research_structure",
+			"improving_research_loop",
+		],
+		sources: [
+			{
+				id: input.source,
+				kind: input.source === "fixture" ? "fixture" : "paper_index",
+				url: input.sourceUrl,
+				fields: ["works", "metadata", "citations", "open_access", "abstracts"],
+			},
+			...(input.fullTextTop > 0 ? [{
+				id: "source-specific-full-text",
+				kind: "full_text" as const,
+				fields: ["fullTextStatus", "fullTextLength", "fullTextSections", "rubric"],
+			}] : []),
+		],
+		papers: input.scores.map((score) => {
+			const paper = papersById.get(score.paperId);
+			const reproduction = reproductionByPaper.get(score.paperId);
+			return {
+				id: score.paperId,
+				title: score.title,
+				rank: score.rank,
+				score: score.readFirstScore,
+				...(score.year ? { year: score.year } : {}),
+				...(paper?.doi ? { doi: paper.doi } : {}),
+				...(paper?.arxivId ? { arxivId: paper.arxivId } : {}),
+				...(paper?.pmid ? { pmid: paper.pmid } : {}),
+				...(paper?.pmcid ? { pmcid: paper.pmcid } : {}),
+				...(paper?.openAlexId ? { openAlexId: paper.openAlexId } : {}),
+				...(paper?.urls[0]?.url ? { url: paper.urls[0].url } : {}),
+				...(rolesByPaper.has(score.paperId) ? { roles: rolesByPaper.get(score.paperId) } : {}),
+				verification: {
+					state: reproduction?.status && reproduction.status !== "not_started" ? "partial" as const : "not_checked" as const,
+					summary: reproduction?.status && reproduction.status !== "not_started"
+						? `External reproduction note recorded: ${reproduction.status}.`
+						: "No completed reproduction note supplied for this run.",
+				},
+			};
+		}),
+		entities: [],
+		tools,
+		artifacts: researchArtifacts,
+		nextActions: input.nextResearchActions.nextActions.slice(0, 20).map((action) => ({
+			id: action.id,
+			title: action.title,
+			priority: action.priority,
+			artifactPointers: action.artifactPointers,
+		})),
+		verification: {
+			state: "partial",
+			summary: `PaperRank ranked ${input.scores.length} seed papers, expanded ${input.citationExpansion.expandedPaperCount} citation-neighborhood papers, fetched full text for ${fullTextAvailable}/${input.fullTextTop} requested papers, and generated ${input.nextResearchActions.summary.actionCount} next research actions.`,
+			caveats: [
+				"PaperRank is read-order triage, not a completed scientific validation.",
+				"Missing evidence means Feynman did not see it in fetched sources; it is not proof the paper lacks it.",
+				"Raw full-text bodies are not stored in the ResearchRun manifest.",
+			],
+		},
+		constraints: {
+			rawFullTextStored: false,
+			promptsStored: Boolean(artifacts.synthesisPromptPath),
+			modelOutputsStored: Boolean(artifacts.modelSynthesisPath),
+		},
 	};
 }
 

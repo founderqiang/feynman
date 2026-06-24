@@ -1,17 +1,16 @@
 # Runtime Contracts
 
-Pending.
-# Runtime Contracts
-
 ## Research Kernel Contracts
 
 ```ts
 export type ResearchJob =
   | "discovering_prior_art"
   | "reading_paper_content"
+  | "extracting_research_entities"
   | "ranking_evidence"
   | "verifying_claims"
   | "planning_reproduction"
+  | "running_research_experiments"
   | "synthesizing_artifacts"
   | "visualizing_research_structure"
   | "improving_research_loop";
@@ -73,7 +72,7 @@ export type ResearchArtifact = {
 };
 ```
 
-These names are proposed contracts, not documented upstream names. They are derived from existing PaperRank concepts and the repo's research-job list.
+Applied status: `src/research/contracts.ts` now ships the first code-level version of this contract as `feynman.researchRun.v1`, and PaperRank writes `<slug>-research-run.json` for every rank run. The manifest records research jobs, sources, papers, typed artifacts, tools used, verification state, constraints, and next actions. It deliberately stores no raw full-text body.
 
 ## Research Recipe Contract
 
@@ -138,7 +137,9 @@ export type FeynmanPluginManifest = {
   slots?: {
     source_adapters?: string[];
     access_resolvers?: string[];
+    entity_extractors?: string[];
     rank_scorers?: string[];
+    experiment_runners?: string[];
     artifact_exporters?: string[];
     visualizers?: string[];
     subagents?: string[];
@@ -163,6 +164,8 @@ Validation rules:
 - At least one `slots` or `pi` resource must be present.
 - Unknown top-level keys warn in v1; unknown slot keys fail.
 - `requires_env.secret === false` is allowed only for provider-required values that are genuinely env-based. Behavioral config belongs in Feynman settings, following Hermes' non-secret config rule (`hermes-agent/AGENTS.md:102-107`).
+
+Applied status: `src/research/plugin-manifest.ts` validates this shape in code. It allows `entity_extractors` for paper/figure/table/code entity extraction and `experiment_runners` for bounded reproduction/model execution. It rejects unknown slots, unsupported research jobs, absolute paths, path traversal, and plugin names that behave like paths.
 
 ## Plugin Slot Contracts
 
@@ -221,6 +224,38 @@ export type RankScorer = {
 ```
 
 Scorers add signals; they do not rewrite core score weights unless a named score profile opts in.
+
+### Entity Extractor
+
+```ts
+export type EntityExtractor = {
+  id: string;
+  label: string;
+  extract(input: {
+    run: ResearchRun;
+    artifactPaths: string[];
+    entityKinds?: string[];
+  }): Promise<ResearchEntity[]>;
+};
+```
+
+Use for molecular structure diagrams, protein/gene/ligand extraction, table/equation extraction, dataset and benchmark extraction, and code/method entity extraction. Extractors write candidates with evidence and confidence; they do not claim validation by themselves.
+
+### Experiment Runner
+
+```ts
+export type ExperimentRunner = {
+  id: string;
+  label: string;
+  run(input: {
+    run: ResearchRun;
+    entityIds: string[];
+    outputDir: string;
+  }): Promise<ResearchArtifact[]>;
+};
+```
+
+Use for bounded reproduction or model calls such as BioNeMo-style folding, docking, sequence search, molecule generation, benchmark reruns, or code execution. Runners must write artifacts plus caveats and may not silently mutate ranking semantics.
 
 ### Artifact Exporter
 

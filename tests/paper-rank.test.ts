@@ -5,6 +5,7 @@ import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 import test from "node:test";
 
+import { validateResearchRun, type ResearchRun } from "../src/research/contracts.js";
 import {
 	abstractFromInvertedIndex,
 	buildFullTextAccessPlan,
@@ -1565,6 +1566,32 @@ test("runPaperRank writes durable report, data, graph, and provenance artifacts"
 	for (const path of Object.values(result.artifacts)) {
 		assert.equal(existsSync(path), true, path);
 	}
+	const researchRun = JSON.parse(readFileSync(result.artifacts.researchRunPath, "utf8")) as ResearchRun;
+	const researchRunValidation = validateResearchRun(researchRun);
+	assert.equal(researchRunValidation.valid, true, researchRunValidation.errors.join("; "));
+	assert.equal(researchRun.schemaVersion, "feynman.researchRun.v1");
+	assert.equal(researchRun.workflow, "paper_rank");
+	assert.equal(researchRun.slug, "mechanistic-interpretability-sparse-autoencoders");
+	assert.equal(researchRun.topic, "mechanistic interpretability sparse autoencoders");
+	assert.equal(researchRun.status, "completed");
+	assert.ok(researchRun.researchJobs.includes("ranking_evidence"));
+	assert.ok(researchRun.researchJobs.includes("planning_reproduction"));
+	assert.ok(researchRun.researchJobs.includes("visualizing_research_structure"));
+	assert.equal(researchRun.entities.length, 0);
+	assert.equal(researchRun.constraints.rawFullTextStored, false);
+	assert.equal(researchRun.constraints.promptsStored, true);
+	assert.equal(researchRun.constraints.modelOutputsStored, true);
+	assert.equal(researchRun.artifacts.some((artifact) => artifact.role === "primary_ranked_brief" && artifact.primary), true);
+	assert.equal(researchRun.artifacts.some((artifact) => artifact.role === "research_run_manifest"), true);
+	assert.equal(researchRun.artifacts.some((artifact) => artifact.role === "bounded_model_handoff"), true);
+	assert.equal(researchRun.tools.some((tool) => tool.kind === "rank_scorer" && tool.status === "completed"), true);
+	assert.equal(researchRun.tools.some((tool) => tool.kind === "access_resolver" && tool.status === "completed"), true);
+	assert.equal(researchRun.papers.length, 4);
+	assert.equal(researchRun.papers[0]?.id, "WFOUNDATION");
+	assert.equal(researchRun.papers[0]?.verification.state, "partial");
+	assert.ok(researchRun.nextActions.length > 0);
+	assert.doesNotMatch(readFileSync(result.artifacts.researchRunPath, "utf8"), /"fullText"\s*:/);
+	assert.doesNotMatch(readFileSync(result.artifacts.researchRunPath, "utf8"), /We evaluate baselines/);
 	const scores = readJsonl(result.artifacts.scoresPath);
 	assert.equal(scores.length, 4);
 	assert.ok(JSON.stringify(scores[0]).includes('"span"'));

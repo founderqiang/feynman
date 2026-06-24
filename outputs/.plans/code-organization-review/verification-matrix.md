@@ -24,6 +24,37 @@ Passed on 2026-06-23:
 | Package dry run | `npm pack --dry-run` | Passed, 133 files, 50.9 MB package, shasum `85d92d0cffb5f01296a0599b45ac93b6b2771b62`. |
 | Runtime alias speed fix | `ls -l .feynman/npm/node_modules/@mariozechner` after pack prep | Passed, legacy Pi package entries are symlinks to `@earendil-works/*`, not duplicate installs. |
 
+## ResearchRun Product-Contract Verification
+
+Disposable clean-room Daytona sandbox: `feynman-researchrun-e2e` (created from an 18 MB trimmed local context, then deleted after verification).
+
+Passed on 2026-06-24:
+
+| Area | Check | Result |
+| --- | --- | --- |
+| Local root tests | `npm test` | Passed, 325/325. |
+| Local types | `npm run typecheck` | Passed. |
+| Local architecture guard | `npm run architecture:check` | Passed, checked 118 source files and reported known debt only. |
+| Local build | `npm run build` | Passed. |
+| Local root audit | `npm audit --omit=dev` | Passed, 0 vulnerabilities. |
+| Diff hygiene | `git diff --check` | Passed. |
+| Website lint | `npm --prefix website run lint` | Passed. |
+| Website types | `npm --prefix website run typecheck` | Passed, 0 errors/warnings/hints. |
+| Website build | `npm --prefix website run build` | Passed, 33 static pages. |
+| Website audit | `npm --prefix website audit --omit=dev` | Passed, 0 vulnerabilities. |
+| Rendered links | Node HTML walker over `website/dist` | Passed, 33 HTML files, 0 missing internal links. |
+| Local package dry run | `npm pack --dry-run` | Passed after final manifest completion-marker ordering fix, 135 files, 52.3 MB package, shasum `0442fe1352718f10b347c53b182b84d335713451`. |
+| Local installed-tarball E2E | Fresh temp `npm install --omit=dev /tmp/feynman-pack-e2e/companion-ai-feynman-0.3.4.tgz`, then installed `feynman rank ... --json` | Passed. Installed binary returned `0.3.4`, ranked 4 papers, top paper `WFOUNDATION`, emitted `feynman.researchRun.v1`, wrote 11 artifacts, and kept `rawFullTextStored: false`. Temp install audited 365 packages with 0 vulnerabilities. |
+| Daytona clean install | `npm ci` | Passed, 365 packages, 0 vulnerabilities. |
+| Daytona architecture guard | `npm run architecture:check` | Passed, checked 118 source files and reported known debt only. |
+| Daytona root test suite | `npm test` | Passed, 325/325. |
+| Daytona types | `npm run typecheck` | Passed. |
+| Daytona build | `npm run build` | Passed. |
+| Daytona root audit | `npm audit --omit=dev` | Passed, 0 vulnerabilities. |
+| Daytona package dry run | `npm pack --dry-run` | Passed, 135 files, 51.2 MB package, shasum `887a878a609b651fd1d1b67077c1c48e8d4c8f0f`. |
+
+Install-speed note: local installed-tarball install took about 3 minutes with npm's allow-scripts warnings; Daytona clean `npm ci` took 15 seconds. The package works, and the remaining speed target is the 51-52 MB vendored runtime archive and 417-package runtime prep path.
+
 ## Before Any Product Code Change
 
 | Area | Check | Evidence Needed |
@@ -58,6 +89,10 @@ npm run build
 
 Add a fixture run that verifies:
 
+- ResearchRun manifest exists at `<slug>-research-run.json`
+- ResearchRun manifest validates as `feynman.researchRun.v1`
+- ResearchRun manifest names research jobs, sources, tools, artifacts, verification state, constraints, and next actions
+- ResearchRun manifest contains no raw full text
 - ranked paper count
 - top paper ID/title
 - graph edge count
@@ -84,6 +119,7 @@ Add a fixture run that verifies:
 Tests:
 
 - Valid manifest with `source_adapters` and Pi skills passes.
+- Valid manifest with `entity_extractors` and `experiment_runners` passes.
 - Missing `research_jobs` fails.
 - Unknown slot fails.
 - Path traversal in plugin name/path fails.

@@ -32,7 +32,7 @@ The kernel owns research truth. CLI, Pi commands, MCP, and plugins are just ways
 
 ### First Split: `src/rank/paper-rank.ts`
 
-Current file: 6,482 lines.
+Current file: 6,673 lines.
 
 Proposed modules:
 
@@ -105,10 +105,14 @@ version: 0.1.0
 description: Adds Scholar Inbox as a source adapter for conference/topic paper feeds.
 research_jobs:
   - discovering_prior_art
-  - synthesizing_auditable_artifacts
+  - synthesizing_artifacts
 slots:
   source_adapters:
     - ./dist/source-adapter.js
+  entity_extractors:
+    - ./dist/entity-extractor.js
+  experiment_runners:
+    - ./dist/reproduction-runner.js
   artifact_exporters:
     - ./dist/conference-summary-exporter.js
 pi:
@@ -125,7 +129,9 @@ Allowed slot types:
 
 - `source_adapters` — return paper candidates from a source such as Scholar Inbox, OpenReview, Semantic Scholar, arXiv, PubMed, or conference feeds.
 - `access_resolvers` — return legal full-text/access candidates.
+- `entity_extractors` — extract typed research entities from papers, figures, captions, tables, source text, or code. Examples include molecular diagrams, ligands, proteins, genes, assays, equations, datasets, code paths, benchmark names, and methods.
 - `rank_scorers` — add bounded score signals with provenance; cannot override core score semantics silently.
+- `experiment_runners` — run or package bounded reproduction/model calls against explicit inputs and write artifact paths plus caveats back into a `ResearchRun`.
 - `artifact_exporters` — emit reports, tables, graphs, or package outputs from a `ResearchRun`.
 - `visualizers` — render evidence graph views when they change a research decision.
 - `subagents` — provide Pi subagent prompts only when they serve a research job.
@@ -200,7 +206,9 @@ Second PR: split `src/cli.ts` command handlers.
 
 Third PR: add `feynman architecture:check` or `npm run architecture:check` to flag new source files over a threshold and forbid importing command modules from domain modules.
 
-Fourth PR: add plugin manifest validator and one built-in example adapter behind tests. Scholar Inbox is a good first adapter only as a `source_adapter` for conference/topic paper feeds; it should not become a generic summarization product.
+Current applied follow-up: `src/research/contracts.ts` now defines the first `ResearchRun` spine and `src/research/plugin-manifest.ts` validates the first research-plugin slot contract, including `entity_extractors` and `experiment_runners`.
+
+Fourth PR: add one built-in example adapter behind tests. Scholar Inbox is a good first adapter only as a `source_adapter` for conference/topic paper feeds; a molecular-structure parser is a good first `entity_extractor`; BioNeMo-style NIM calls belong behind `experiment_runners`. None of these should become generic summarization, outreach, or admin products.
 
 Fifth PR: add MCP server once `resolvePaperAccess`, `runPaperRank`, artifact listing, and evidence graph inspection are stable imports.
 
