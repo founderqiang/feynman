@@ -52,6 +52,10 @@ Before adding a command, prompt, tool, extension, dashboard, document page, or r
 - Treat parent CLI wiring as incomplete until the actual Pi launch path is verified: check `src/pi/launch.ts`, `scripts/prepare-runtime-workspace.mjs`, package `pi.extensions`, and every extension file the launch command passes.
 - For observability changes, verify session/agent/tool lifecycle coverage inside Pi itself and keep prompts, tool arguments, paper text, and file paths out of emitted telemetry.
 
+## Workbench control plane
+
+- The workbench is a Pi-backed research control plane. For chat, session, project, or reference-product parity work, read Pi's docs/runtime and the reference app's live behavior before coding, then wire the UI to real Pi/Feynman sessions, messages, streaming or resume state, files, artifacts, execution/provenance, compute, skills/MCP, memory, and verification state before calling the surface functionally complete.
+
 ## Output conventions
 
 - Research outputs go in `outputs/`.
