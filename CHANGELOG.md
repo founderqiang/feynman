@@ -4,6 +4,13 @@ Workspace lab notebook for long-running or resumable research work.
 
 Use this file to track chronology, not release notes. Keep entries short, factual, and operational.
 
+### 2026-07-05 13:26 EDT — workbench-dark-wide-rail-parity
+
+- Objective: Continue the Claude Science 1:1 workbench parity goal by matching the reference rail's wide dark project-pane structure while keeping Feynman's green identity.
+- Changed: The React workbench grid now uses a responsive `--rail-width` up to `358px` instead of a fixed `256px`. The in-project rail uses a dark green surface, transparent large action rows, a divider under `Files`, dark hover/selection states, and lighter session text so project/session names truncate less aggressively and read closer to the Claude Science rail. Launcher/setup brand styles remain separate and intact.
+- Verified: Focused React/file-surface tests passed (`17/17`); root/workbench typecheck passed; `npm run build:workbench-web` passed with existing science-viewer bundle warnings; headless browser verification on `session-20260705160452-ae55be` showed rail width `358px`, rail background `rgb(29, 35, 28)`, transparent `44px` rail actions exactly `New chat`, `Customize`, `Files`, divider `rgb(58, 66, 55)`, selected row background `rgb(16, 21, 15)`, no `project-card` or `brand-row`, and main content starting at `x=358`; launcher verification still found `brand-mark`, `brand-title`, and `brand-subtitle` intact; architecture check passed with existing split-debt warnings; `git diff --check` passed; and full `npm test` passed (`585/585`).
+- Next: Commit the focused dark/wide rail slice, then continue with the next live rendered parity mismatch.
+
 ### 2026-07-05 13:18 EDT — workbench-flat-project-header-parity
 
 - Objective: Continue the Claude Science 1:1 workbench parity goal by removing the extra card-like rail project summary that made the Feynman project rail denser and more decorated than the reference.
