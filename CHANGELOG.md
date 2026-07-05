@@ -4,6 +4,13 @@ Workspace lab notebook for long-running or resumable research work.
 
 Use this file to track chronology, not release notes. Keep entries short, factual, and operational.
 
+### 2026-07-05 13:35 EDT — workbench-dark-main-surface-parity
+
+- Objective: Continue the Claude Science 1:1 workbench parity goal by moving the frame conversation surface from a light card-heavy canvas toward the reference dark project workspace.
+- Changed: The React workbench conversation area now uses a dark green canvas, dark topbar/context strip borders and chips, dark assistant/user message surfaces, light transcript text, and a dark disabled-send state while keeping the composer input readable. The change is scoped to the in-frame workbench surface and leaves menus, launcher cards, and the underlying chat/artifact mechanics intact.
+- Verified: Focused React/file-surface tests passed (`17/17`); root/workbench typecheck passed; `npm run build:workbench-web` passed with existing science-viewer bundle warnings; headless browser verification on `session-20260705160452-ae55be` showed conversation background `rgb(32, 37, 31)`, topbar border `rgb(52, 60, 50)`, title color `rgb(245, 248, 238)`, context chip background `rgb(42, 51, 40)`, assistant message background `rgb(29, 35, 28)`, assistant text `rgb(237, 244, 232)`, user message background `rgb(34, 48, 32)`, composer border `rgb(58, 66, 55)`, and readable composer text; architecture check passed with existing split-debt warnings; `git diff --check` passed; and full `npm test` passed (`585/585`).
+- Next: Commit the focused dark main-surface slice, then continue with the next live rendered parity mismatch.
+
 ### 2026-07-05 13:26 EDT — workbench-dark-wide-rail-parity
 
 - Objective: Continue the Claude Science 1:1 workbench parity goal by matching the reference rail's wide dark project-pane structure while keeping Feynman's green identity.
