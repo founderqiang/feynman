@@ -23,6 +23,9 @@ test("React workbench source owns the project Files and artifact inspection surf
 	assert.match(reactShellSource, /<span>New project<\/span>/);
 	assert.match(reactShellSource, /className="session-heading"/);
 	assert.match(reactShellSource, /className="files-overlay-react"/);
+	assert.match(reactShellSource, /function GeneratedArtifactsBlock/);
+	assert.match(reactShellSource, /className="generated-artifacts-grid"/);
+	assert.match(reactShellSource, /artifactTileDownloadUrl\(artifact\.path, clientToken\)/);
 	assert.match(reactShellSource, /aria-label="Files overlay"/);
 	assert.match(reactShellSource, /Search files/);
 	assert.match(reactShellSource, /function fileHostsForState/);

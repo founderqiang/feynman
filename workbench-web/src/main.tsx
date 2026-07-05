@@ -3109,11 +3109,19 @@ function App() {
 							);
 						})
 					) : (
-						<div className="empty-state">
-							<Bot size={18} aria-hidden />
-							<h2>Ask Feynman to research, verify, reproduce, or synthesize.</h2>
-							<p>The chat is attached to this project, its files, Pi subagents, compute records, and provenance state.</p>
-						</div>
+						runArtifacts.length ? (
+							<GeneratedArtifactsBlock
+								artifacts={runArtifacts}
+								clientToken={clientToken}
+								onSelect={(artifact) => openArtifactPath(artifact.path, "Showing artifact")}
+							/>
+						) : (
+							<div className="empty-state">
+								<Bot size={18} aria-hidden />
+								<h2>Ask Feynman to research, verify, reproduce, or synthesize.</h2>
+								<p>The chat is attached to this project, its files, Pi subagents, compute records, and provenance state.</p>
+							</div>
+						)
 					)}
 					{error ? <div className="inline-error">{error}</div> : null}
 				</section>
@@ -4964,6 +4972,78 @@ function FilesPanel({
 				)}
 				</div>
 	);
+}
+
+function GeneratedArtifactsBlock({
+	artifacts,
+	clientToken,
+	onSelect,
+}: {
+	artifacts: WorkbenchArtifact[];
+	clientToken: string | null;
+	onSelect: (artifact: WorkbenchArtifact) => void;
+}) {
+	const generatedArtifacts = artifacts
+		.filter((artifact) => !artifact.hidden)
+		.sort((left, right) => artifactTileRank(left) - artifactTileRank(right) || (right.updatedAtMs ?? 0) - (left.updatedAtMs ?? 0))
+		.slice(0, 8);
+	return (
+		<div className="generated-artifacts-block">
+			<div className="generated-artifacts-heading">
+				<span>Generated</span>
+				<strong>{artifacts.length}</strong>
+			</div>
+			<div className="generated-artifacts-grid">
+				{generatedArtifacts.map((artifact) => (
+					<button type="button" key={artifact.path} className="generated-artifact-tile" onClick={() => onSelect(artifact)}>
+						<ArtifactTilePreview artifact={artifact} clientToken={clientToken} />
+						<span className="generated-artifact-title">{artifact.displayName || artifact.title || artifact.name}</span>
+						<span className="generated-artifact-meta">{artifact.category} / {artifact.extension || "file"}</span>
+					</button>
+				))}
+			</div>
+			{artifacts.length > generatedArtifacts.length ? (
+				<div className="generated-artifacts-more">{artifacts.length - generatedArtifacts.length} more in Files</div>
+			) : null}
+		</div>
+	);
+}
+
+function ArtifactTilePreview({ artifact, clientToken }: { artifact: WorkbenchArtifact; clientToken: string | null }) {
+	if (isImageArtifact(artifact)) {
+		return (
+			<span className="generated-artifact-preview image">
+				<img src={artifactTileDownloadUrl(artifact.path, clientToken)} alt="" loading="lazy" />
+			</span>
+		);
+	}
+	const kind = artifactPreviewKind(artifact);
+	const Icon = kind === "spreadsheet" ? Table2 : kind === "image" ? ImageIcon : kind === "json" ? FileJson : kind === "audio" || kind === "video" ? Play : FileText;
+	return (
+		<span className="generated-artifact-preview">
+			<Icon size={28} aria-hidden />
+			<small>{artifact.extension || artifact.category}</small>
+		</span>
+	);
+}
+
+function artifactTileDownloadUrl(path: string, clientToken: string | null): string {
+	const params = new URLSearchParams({ path });
+	if (clientToken) params.set("token", clientToken);
+	return `/api/file/download?${params.toString()}`;
+}
+
+function isImageArtifact(artifact: WorkbenchArtifact): boolean {
+	const contentType = (artifact.contentType || "").toLowerCase();
+	const extension = (artifact.extension || artifact.name.split(".").pop() || "").toLowerCase();
+	return contentType.startsWith("image/") || ["apng", "avif", "gif", "jpg", "jpeg", "png", "svg", "webp"].includes(extension);
+}
+
+function artifactTileRank(artifact: WorkbenchArtifact): number {
+	if (artifact.category === "output") return 0;
+	if (artifact.category === "visual" || isImageArtifact(artifact)) return 1;
+	if (artifact.category === "data") return 2;
+	return 3;
 }
 
 function ArtifactRecoveryList({
