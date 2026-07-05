@@ -79,19 +79,55 @@ button {
 .project-header {
 	display: flex;
 	align-items: center;
-	gap: 10px;
-	min-height: 46px;
-	margin-bottom: 12px;
+	gap: 8px;
+	min-height: 52px;
+	margin-bottom: 18px;
 }
 
-.project-mark {
-	display: grid;
-	place-items: center;
-	width: 32px;
-	height: 32px;
+.rail-icon-button,
+.project-title-button {
+	display: inline-flex;
+	align-items: center;
 	border-radius: 7px;
-	color: #f6fbef;
-	background: #2f6a3d;
+	color: #eef4e8;
+	background: transparent;
+}
+
+.rail-icon-button {
+	justify-content: center;
+	width: 38px;
+	height: 38px;
+	flex: 0 0 auto;
+	color: #d4decf;
+}
+
+.project-title-button {
+	justify-content: flex-start;
+	gap: 8px;
+	min-width: 0;
+	flex: 1 1 auto;
+	height: 38px;
+	padding: 0 4px;
+	font-size: 24px;
+	font-weight: 760;
+	letter-spacing: 0;
+}
+
+.project-title-button span {
+	min-width: 0;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+
+.project-title-button svg {
+	flex: 0 0 auto;
+	color: #aeb8a8;
+}
+
+.rail-icon-button:hover,
+.project-title-button:hover {
+	background: #2a3328;
 }
 
 .brand-mark {

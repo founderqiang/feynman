@@ -1,9 +1,11 @@
 import {
+	ArrowLeft,
 	Atom,
 	AtSign,
 	BookOpen,
 	Bot,
 	CheckCircle2,
+	ChevronDown,
 	ChevronRight,
 	CloudUpload,
 	Copy,
@@ -20,6 +22,7 @@ import {
 	Layers,
 	Link,
 	Pencil,
+	PanelLeft,
 	PanelRightOpen,
 	Play,
 	Plus,
@@ -2812,11 +2815,34 @@ function App() {
 			/>
 			<aside className="rail" aria-label="Research sessions">
 				<div className="project-header">
-					<div className="project-mark"><Atom size={18} aria-hidden /></div>
-					<div>
-						<p className="project-label">Project</p>
-						<h2>{project?.name ?? "Workspace"}</h2>
-					</div>
+					<button
+						type="button"
+						className="rail-icon-button"
+						aria-label="Back to projects"
+						onClick={() => {
+							setMode(data?.onboarding.completed ? "launcher" : "onboarding");
+							window.history.pushState(null, "", launcherPath());
+						}}
+					>
+						<ArrowLeft size={22} aria-hidden />
+					</button>
+					<button
+						type="button"
+						className="project-title-button"
+						aria-label="Open project switcher"
+						onClick={() => setCommandPaletteOpen(true)}
+					>
+						<span>{project?.name ?? "Workspace"}</span>
+						<ChevronDown size={18} aria-hidden />
+					</button>
+					<button
+						type="button"
+						className="rail-icon-button"
+						aria-label="Toggle files pane"
+						onClick={() => setSidePanel(sidePanel === "files" ? null : "files")}
+					>
+						<PanelLeft size={22} aria-hidden />
+					</button>
 				</div>
 
 				<div className="rail-actions">
