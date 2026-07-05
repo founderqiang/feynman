@@ -20,6 +20,7 @@
     ".feynman/SYSTEM.md",
     ".feynman/themes/",
     "extensions/",
+    "fixtures/",
     "prompts/",
     "logo.mjs",
     "logo.d.mts",
@@ -43,14 +44,16 @@
   ],
   "scripts": {
     "preinstall": "node ./scripts/check-node-version.mjs",
-    "build": "tsc -p tsconfig.build.json",
+    "build": "npm run build:workbench-web && tsc -p tsconfig.build.json",
+    "build:workbench-web": "vite build --config workbench.vite.config.ts",
     "build:native-bundle": "node ./scripts/build-native-bundle.mjs",
     "dev": "tsx src/index.ts",
     "prepack": "node ./scripts/clean-publish-artifacts.mjs && npm run build && node ./scripts/prepare-runtime-workspace.mjs",
     "start": "tsx src/index.ts",
     "start:dist": "node ./bin/feynman.js",
     "test": "node ./scripts/patch-embedded-pi.mjs && node --import tsx --test --test-concurrency=1 tests/*.test.ts",
-    "typecheck": "tsc --noEmit",
+    "typecheck": "tsc --noEmit && npm run typecheck:workbench-web",
+    "typecheck:workbench-web": "tsc -p workbench-web/tsconfig.json --noEmit",
     "architecture:check": "node ./scripts/check-architecture.mjs"
   },
   "keywords": [
@@ -73,10 +76,11 @@
   "dependencies": {
     "@clack/prompts": "^1.5.1",
     "@companion-ai/alpha-hub": "^0.1.3",
-    "@earendil-works/pi-agent-core": "0.80.2",
-    "@earendil-works/pi-ai": "0.80.2",
-    "@earendil-works/pi-coding-agent": "0.80.2",
-    "@earendil-works/pi-tui": "0.80.2",
+    "@earendil-works/pi-agent-core": "0.80.3",
+    "@earendil-works/pi-ai": "0.80.3",
+    "@earendil-works/pi-coding-agent": "0.80.3",
+    "@earendil-works/pi-tui": "0.80.3",
+    "@nightingale-elements/nightingale-msa": "^5.6.0",
     "@opentelemetry/api": "^1.9.1",
     "@opentelemetry/api-logs": "^0.219.0",
     "@opentelemetry/exporter-logs-otlp-http": "^0.219.0",
@@ -86,9 +90,22 @@
     "@opentelemetry/sdk-trace-base": "^2.8.0",
     "@opentelemetry/sdk-trace-node": "^2.8.0",
     "@opentelemetry/semantic-conventions": "^1.41.1",
+    "@rdkit/rdkit": "^2025.3.4-1.0.0",
     "@sinclair/typebox": "^0.34.49",
+    "3dmol": "^2.5.5",
+    "d3": "^7.9.0",
     "fast-xml-parser": "5.7.3",
+    "igv": "^3.8.4",
+    "jszip": "^3.10.1",
+    "ketcher-core": "^3.15.0",
+    "ketcher-react": "^3.15.0",
+    "ketcher-standalone": "^3.15.0",
+    "npyjs": "^1.1.0",
+    "patristic": "^0.5.7",
+    "pdfjs-dist": "^6.1.200",
     "posthog-node": "^5.38.2",
+    "react-json-view-lite": "^2.5.0",
+    "tidytree": "^0.7.0",
     "undici": "8.5.0"
   },
   "overrides": {
@@ -124,8 +141,16 @@
   },
   "devDependencies": {
     "@types/node": "^25.9.3",
+    "@types/react": "^19.2.17",
+    "@types/react-dom": "^19.2.3",
+    "@vitejs/plugin-react": "^6.0.3",
+    "lucide-react": "^1.23.0",
+    "radix-ui": "^1.6.1",
+    "react": "^19.2.7",
+    "react-dom": "^19.2.7",
     "tsx": "^4.22.4",
-    "typescript": "^6.0.3"
+    "typescript": "^6.0.3",
+    "vite": "^8.1.3"
   },
   "repository": {
     "type": "git",
@@ -134,5 +159,10 @@
   "homepage": "https://github.com/companion-inc/feynman#readme",
   "bugs": {
     "url": "https://github.com/companion-inc/feynman/issues"
-  }
+  },
+  "main": "index.js",
+  "directories": {
+    "test": "tests"
+  },
+  "author": ""
 }

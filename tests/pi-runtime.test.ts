@@ -74,6 +74,23 @@ test("buildPiArgs passes --continue when resuming the recent persisted session",
 	assert.equal(args.includes("--new-session"), false);
 });
 
+test("buildPiArgs passes stable session ids through to Pi", () => {
+	const args = buildPiArgs({
+		appRoot: "/repo/feynman",
+		workingDir: "/workspace",
+		sessionDir: "/sessions",
+		feynmanAgentDir: "/home/.feynman/agent",
+		mode: "json",
+		sessionId: "feynman-workbench-scaling-laws",
+		oneShotPrompt: "hello",
+	});
+
+	assert.deepEqual(args.slice(args.indexOf("--session-id"), args.indexOf("--session-id") + 2), [
+		"--session-id",
+		"feynman-workbench-scaling-laws",
+	]);
+});
+
 test("buildPiEnv wires Feynman paths into the Pi environment", () => {
 	const previousUppercasePrefix = process.env.NPM_CONFIG_PREFIX;
 	const previousLowercasePrefix = process.env.npm_config_prefix;

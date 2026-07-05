@@ -47,7 +47,7 @@ feynman alpha code https://github.com/org/repo src/model.py
 
 ## Configuration
 
-Authentication tokens are stored in `~/.feynman/auth/` and persist across sessions. No additional configuration is needed beyond logging in.
+Authentication state is managed by the bundled alphaXiv client and persists separately from Feynman's own home directory. Feynman stores its runtime state under `~/.feynman`; alphaXiv login state can be removed separately from `~/.ahub` during uninstall. No additional configuration is needed beyond logging in.
 
 ## Without AlphaXiv
 

@@ -5,20 +5,35 @@ section: Getting Started
 order: 4
 ---
 
-Feynman stores all configuration and state under `~/.feynman/`. This directory is created on first run and contains settings, authentication tokens, session history, and installed packages.
+Feynman stores user-level configuration and state under `~/.feynman/`. This directory is created on first run and contains the active local org manifest, Pi agent profile, model settings, authentication state, session history, org-scoped workbench app data, web-search routing, memory state, command shims, and installed user packages.
 
 ## Directory structure
 
 ```
 ~/.feynman/
-├── settings.json       # Core configuration
-├── web-search.json     # Web search routing config
-├── auth/               # OAuth tokens and API keys
+├── active-org.json      # Current local Feynman org selection
+├── orgs/
+│   └── <org_uuid>/
+│       ├── feynman-workbench.db  # Org-level SQLite mirror of core workbench records
+│       └── workbench/
+│           ├── workspaces.json  # Workspace index for the active org
+│           └── workspaces/      # Projects, sessions, settings, uploads, snapshots, and compute logs by workspace
+├── agent/
+│   ├── settings.json   # Core model and runtime configuration
+│   ├── auth.json       # Provider auth metadata and API-key references
+│   ├── agents/         # Synced bundled subagent prompts
+│   ├── skills/         # Synced bundled skills
+│   └── themes/         # Synced Feynman/Pi theme files
 ├── sessions/           # Persisted conversation history
-└── packages/           # Installed optional packages
+├── workbench/           # Legacy pre-org workbench location, copied forward on first access
+├── memory/             # Feynman memory storage
+├── web-search.json     # Web-search routing config
+├── npm-global/         # User-scope optional Pi packages
+├── bin/                # Feynman command shim used by child agents
+└── .state/             # Bootstrap and telemetry state
 ```
 
-The `settings.json` file is the primary configuration file. It is created by `feynman setup` and can be edited manually. A typical configuration looks like:
+The `agent/settings.json` file is the primary configuration file. It is created by `feynman setup` and can be edited manually. A typical configuration looks like:
 
 ```json
 {
@@ -110,7 +125,8 @@ Feynman respects the following environment variables, which take precedence over
 | Variable | Description |
 | --- | --- |
 | `FEYNMAN_MODEL` | Override the default model with a non-Pro model |
-| `FEYNMAN_HOME` | Override the config directory (default: `~/.feynman`) |
+| `FEYNMAN_HOME` | Override the parent directory used to create `.feynman` (default parent: `~`) |
+| `FEYNMAN_WORKBENCH_HOME` | Override the workbench app-data root; otherwise Feynman uses `~/.feynman/orgs/<org_uuid>/workbench` |
 | `FEYNMAN_THINKING` | Override the thinking level |
 | `ANTHROPIC_API_KEY` | Anthropic API key |
 | `OPENAI_API_KEY` | OpenAI API key |

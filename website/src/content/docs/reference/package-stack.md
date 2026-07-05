@@ -5,7 +5,7 @@ section: Reference
 order: 3
 ---
 
-Feynman is built on the Pi runtime and uses curated Pi packages for its capabilities. Packages are managed through `feynman packages` commands and configured in `~/.feynman/settings.json`.
+Feynman is built on the Pi runtime and uses curated Pi packages for its capabilities. Packages are managed through `feynman packages` commands and configured in `~/.feynman/agent/settings.json`.
 
 Feynman also ships a local research extension that registers project-specific tools such as AlphaXiv wrappers, Feynman commands, and read-only Hugging Face Hub inspection. Those extension tools are bundled with Feynman itself rather than installed as separate Pi packages. Pi runtime observability is provided by the bundled `pi-otel` package, pointed at PostHog AI Observability through trace-specific OTLP variables, and configured for metadata-only spans by default. CLI spans use PostHog distributed tracing and are queryable from `posthog.trace_spans`; Pi LLM/tool spans appear in AI Observability and as `$ai_*` events.
 

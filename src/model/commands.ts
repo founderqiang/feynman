@@ -15,6 +15,7 @@ import {
 	getSupportedModelRecords,
 	type ModelStatusSnapshot,
 } from "./catalog.js";
+import { MODEL_API_KEY_PROVIDERS, type ApiKeyProviderInfo } from "./api-key-providers.js";
 import { createModelRegistry, getModelsJsonPath } from "./registry.js";
 import { upsertProviderBaseUrl, upsertProviderConfig } from "./models-json.js";
 
@@ -74,42 +75,12 @@ async function selectOAuthProvider(authPath: string, action: "login" | "logout")
 	return selection;
 }
 
-type ApiKeyProviderInfo = {
-	id: string;
-	label: string;
-	envVar?: string;
-};
-
-const API_KEY_PROVIDERS: ApiKeyProviderInfo[] = [
-	{ id: "openai", label: "OpenAI Platform API", envVar: "OPENAI_API_KEY" },
-	{ id: "anthropic", label: "Anthropic API", envVar: "ANTHROPIC_API_KEY" },
-	{ id: "google", label: "Google Gemini API", envVar: "GEMINI_API_KEY" },
-	{ id: "lm-studio", label: "LM Studio (local OpenAI-compatible server)" },
-	{ id: "litellm", label: "LiteLLM Proxy (OpenAI-compatible gateway)" },
-	{ id: "__custom__", label: "Custom provider (local/self-hosted/proxy)" },
-	{ id: "amazon-bedrock", label: "Amazon Bedrock (AWS credential chain)" },
-	{ id: "openrouter", label: "OpenRouter", envVar: "OPENROUTER_API_KEY" },
-	{ id: "zai", label: "Z.AI / GLM", envVar: "ZAI_API_KEY" },
-	{ id: "kimi-coding", label: "Kimi / Moonshot", envVar: "KIMI_API_KEY" },
-	{ id: "minimax", label: "MiniMax", envVar: "MINIMAX_API_KEY" },
-	{ id: "minimax-cn", label: "MiniMax (China)", envVar: "MINIMAX_CN_API_KEY" },
-	{ id: "mistral", label: "Mistral", envVar: "MISTRAL_API_KEY" },
-	{ id: "groq", label: "Groq", envVar: "GROQ_API_KEY" },
-	{ id: "xai", label: "xAI", envVar: "XAI_API_KEY" },
-	{ id: "cerebras", label: "Cerebras", envVar: "CEREBRAS_API_KEY" },
-	{ id: "vercel-ai-gateway", label: "Vercel AI Gateway", envVar: "AI_GATEWAY_API_KEY" },
-	{ id: "huggingface", label: "Hugging Face", envVar: "HF_TOKEN" },
-	{ id: "opencode", label: "OpenCode Zen", envVar: "OPENCODE_API_KEY" },
-	{ id: "opencode-go", label: "OpenCode Go", envVar: "OPENCODE_API_KEY" },
-	{ id: "azure-openai-responses", label: "Azure OpenAI (Responses)", envVar: "AZURE_OPENAI_API_KEY" },
-];
-
 function resolveApiKeyProvider(input: string): ApiKeyProviderInfo | undefined {
 	const normalizedInput = normalizeProviderId(input);
 	if (!normalizedInput) {
 		return undefined;
 	}
-	return API_KEY_PROVIDERS.find((provider) => provider.id === normalizedInput);
+	return MODEL_API_KEY_PROVIDERS.find((provider) => provider.id === normalizedInput);
 }
 
 export function resolveModelProviderForCommand(
@@ -143,14 +114,14 @@ function apiKeyProviderHint(provider: ApiKeyProviderInfo): string {
 }
 
 async function selectApiKeyProvider(): Promise<ApiKeyProviderInfo | undefined> {
-	const options: PromptSelectOption<ApiKeyProviderInfo | "cancel">[] = API_KEY_PROVIDERS.map((provider) => ({
+	const options: PromptSelectOption<ApiKeyProviderInfo | "cancel">[] = MODEL_API_KEY_PROVIDERS.map((provider) => ({
 		value: provider,
 		label: provider.label,
 		hint: apiKeyProviderHint(provider),
 	}));
 	options.push({ value: "cancel", label: "Cancel" });
 
-	const defaultProvider = API_KEY_PROVIDERS.find((provider) => provider.id === "openai") ?? API_KEY_PROVIDERS[0];
+	const defaultProvider = MODEL_API_KEY_PROVIDERS.find((provider) => provider.id === "openai") ?? MODEL_API_KEY_PROVIDERS[0];
 	const selection = await promptSelect("Choose an API-key provider:", options, defaultProvider);
 	if (selection === "cancel") {
 		return undefined;

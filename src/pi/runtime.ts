@@ -20,6 +20,7 @@ export type PiRuntimeOptions = {
 	mode?: "text" | "json" | "rpc";
 	thinkingLevel?: string;
 	explicitModelSpec?: string;
+	sessionId?: string;
 	resumeRecentSession?: boolean;
 	oneShotPrompt?: string;
 	initialPrompt?: string;
@@ -153,6 +154,9 @@ export function buildPiArgs(options: PiRuntimeOptions, paths: PiPaths = resolveP
 	}
 	if (options.explicitModelSpec) {
 		args.push("--model", options.explicitModelSpec);
+	}
+	if (options.sessionId) {
+		args.push("--session-id", options.sessionId);
 	}
 	if (options.thinkingLevel) {
 		args.push("--thinking", options.thinkingLevel);

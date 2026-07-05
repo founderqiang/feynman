@@ -4,6 +4,74 @@ This file is the public release history for Feynman. Keep entries user-facing: w
 
 GitHub release notes are generated from the matching `## vX.Y.Z` section in this file.
 
+## Unreleased
+
+### Science Workbench
+
+- Expanded `feynman serve` into a standalone open-science workbench surface with Feynman-owned project/session/frame state, project metadata, Pi chat, frame message rows, frame backfill health records, Feynman Bio Tools, notebooks, compute inventory, artifacts, lineage, provenance, settings, memory categories, onboarding intent context, and redacted credential availability ledgers.
+- Added a Feynman-owned `~/.feynman/active-org.json` and `~/.feynman/orgs/<org_uuid>/` app spine so the local workbench has an org-scoped home structure instead of a flat scratch directory.
+- Added a Feynman-owned org database at `~/.feynman/orgs/<org_uuid>/feynman-workbench.db`, refreshed from the local workbench state with reference-shaped project, frame, message, artifact, artifact-version, execution, verification, memory, note, annotation, read-cursor, artifact-folder, compute-provider, MCP-grant, memory-category, routine-schedule, managed-endpoint, and capability-setting tables.
+- Added compact table envelopes in that database for the remaining reference-shaped workbench ledgers Feynman already owns in state, including agents, skills, credentials, OAuth tokens, events, notifications, session activity, claims, host logs, marketplace rows, and archive rows.
+- Compute-provider rows in the org database now persist egress policy and Modal environment fields, including in-place upgrades for existing local databases. Split science connector attachments, split MCP grants, and custom MCP resource identifiers are mirrored through Feynman's owned ledger rows.
+- Added a Feynman-owned chemistry sketcher tool that creates editable KET, Molfile, RXN, or SMILES artifacts under `outputs/chemistry-sketches/` for the local Ketcher editor, instead of requiring a reference-app MCP runtime.
+- KET, RXN, CDXML, and CXSMILES chemistry artifacts now open as first-class molecule previews in the workbench. Feynman marks these scanner formats as previewable text artifacts, shows lightweight chemistry metadata, routes sketch files into the local Ketcher editor, and avoids trying to render Ketcher-only formats through RDKit.
+- Moved app-owned workbench state into `~/.feynman/orgs/<org_uuid>/workbench/workspaces/<workspace-id>/`, including workbench settings, chat sessions, uploads, memory, annotations, OAuth token references, notebook logs, Modal job scripts, managed Python/R environments, artifact snapshots, and cloud-export audit logs. Existing home-level `~/.feynman/workbench` records and checkout-local `.feynman/workbench` records are copied forward on first access.
+- Added Feynman-owned credential and setup-intent state so the workbench can show which research capabilities are available without exposing raw secrets or requiring another local app at runtime.
+- Added Feynman-owned skill source and license-assent ledgers so the workbench can audit its bundled science skill pack without depending on an external marketplace service.
+- Added Feynman-owned watch routine ledgers so `/watch` plans and baselines appear as honest scheduled or blocked routine state in the workbench.
+- Added Feynman-owned contact-email and credential-ask decision ledgers so public database contact consent and provider credential readiness are auditable without exposing raw credential values.
+- Added Feynman-owned compute poller lease rows so active compute jobs and pending terminations expose the same single-writer polling guard shape as the science workbench control plane.
+- Added Feynman-owned review feedback rows so user-requested reviewer passes are auditable by frame, type, model, response id, and bounded context snapshot.
+- Added Feynman-owned frame rows so projects, chat sessions, artifact runs, and upload areas expose a first-class control-plane frame spine through local state.
+- Added Feynman-owned project metadata rows with local owner, created/updated timestamps, context, memory state, and upload-frame linkage.
+- Added Feynman-owned frame message rows so persisted chat turns are auditable by frame id, message index, UUID, role, status, and structured message JSON.
+- Added Feynman-owned frame backfill health records so failed historical frame imports can be tracked without inventing failures in clean workspaces.
+- Chat-produced artifacts now attach to the producing session and project by snapshot/output provenance, so Run and Project file scopes, header metrics, artifact folders, versions, and verification evidence agree even when the file slug differs from the chat frame id.
+- Files now show a host selector for local workspace artifacts, SSH/BYOC compute hosts, and cloud buckets derived from Feynman's owned compute and credential state.
+- HTML report previews now support element-level annotation inside the sandboxed iframe, including selector/text capture, saved badges, and the same artifact annotation/refinement path used by text, image, and PDF anchors.
+- Artifact Notes now open in workbench modals with target context, existing note count, add/edit/delete controls, Cmd/Ctrl+Enter save, note preview, and Open artifact navigation, backed by Feynman's owned target-note ledger.
+- Cloud storage now opens a workbench modal from Customize > Storage, showing credential-backed S3/GCS/Azure/local targets, configured or missing status, target details, connection-reference feedback, delete, and a Credentials navigation action.
+- Artifact Cloud export now opens a workbench modal that shows configured and missing storage targets, lets users choose the destination path, and records exports through Feynman's owned cloud-export audit log.
+- Expanded Feynman Bio Tools with no-login KEGG `link:` and `conv:` modes for batched pathway/reaction/database cross-links and outside ID conversions, including missing-ID reporting and endpoint provenance.
+- Expanded Feynman Bio Tools with no-login PanglaoDB support for curated single-cell marker genes by cell type or gene symbol, including canonical-marker filters, organ/species context, nicknames, and sensitivity/specificity scores.
+- Expanded Feynman Bio Tools with no-login public sources for AlphaFold DB predicted structures, ArrayExpress/BioStudies functional-genomics studies, MGnify metagenomics studies, JASPAR transcription-factor matrices, and MyGene.info gene annotations.
+- Expanded Feynman Bio Tools with richer no-login PubMed support for article metadata, PMID/PMCID/DOI conversion, related-article and PMC links, citation matching, copyright/license checks, and PMC full-text routing with bounded section snippets.
+- Expanded Feynman Bio Tools with richer no-login ClinicalTrials.gov support for NCT detail records, sponsor-specific trial programs, eligibility filters, investigator/contact discovery, and endpoint summaries.
+- Expanded Feynman Bio Tools with richer no-login bioRxiv and medRxiv support for preprint DOI lookup, date/category windows, published-preprint links, funder/ROR lookup, bioRxiv content statistics, and server-specific usage statistics.
+- Expanded Feynman Bio Tools with no-login EBI structural and interaction sources for ChEBI compounds and ontology records, Complex Portal macromolecular complexes, IntAct molecular interactions, and EMDB cryo-EM map metadata.
+- Expanded Feynman Bio Tools with no-login public atlas and regulatory sources for openFDA drug labels, adverse events, recalls, Drugs@FDA applications, application count aggregations, pharmacologic classes, generic-equivalent active-ingredient sets, Human Protein Atlas gene/protein expression rows, and eQTL Catalogue variant-gene association rows.
+- Expanded Feynman Bio Tools with richer no-login ChEMBL support for compound name/SMILES similarity and substructure search, drug indications and warnings, calculated ADMET properties, ligand-target bioactivity filters, mechanism records, and target/gene search.
+- Expanded Feynman Bio Tools with no-login GWAS Catalog support for curated SNP-trait associations, EFO trait search, study accessions, PMIDs, p-values, mapped genes, and ancestry/sample metadata.
+- Expanded Feynman Bio Tools with exact human-genetics modes for GWAS Catalog association, trait, study, and SNP detail queries; eQTL Catalogue dataset and dataset-scoped association queries; and PheWeb/FinnGen variant, gene, phenotype-listing, and phenotype-search PheWAS workflows.
+- Expanded Feynman Bio Tools with exact literature modes for OpenAlex work search/detail, citations, references, author search/detail, venue metadata, and arXiv search plus batch paper retrieval.
+- Expanded Feynman Bio Tools with exact protein-annotation modes for InterPro/Pfam domain architecture, entry search/detail, Pfam clan and family member lookups, Human Protein Atlas gene/search records, and STRING mapping/network/similarity workflows.
+- Expanded Feynman Bio Tools with exact research-resource modes for Antibody Registry search/detail/catalog/stat workflows and Grants.gov Search2 opportunity lookup by keyword, opportunity number, ALN, agency, status, eligibility, funding category, and funding instrument.
+- Expanded Feynman Bio Tools with exact Rfam RNA modes for family metadata, accession/id conversion, seed alignments, covariance models, phylogenetic trees, sequence regions, PDB structure mappings, and batch sequence search.
+- Expanded Feynman Bio Tools with exact omics-archive modes for ArrayExpress experiments/files/samples, GEO series search/detail, MetaboLights studies/files/data files, MGnify studies/analyses, and PRIDE project/protein-evidence workflows.
+- Expanded Feynman Bio Tools with exact regulation modes for ENCODE experiment/biosample/file search and detail records, JASPAR matrix/version/catalog workflows, and UniBind dataset plus regional TFBS workflows through UCSC hub data.
+- Expanded Feynman Bio Tools with exact variant modes for gnomAD short variant search/detail, gene variants, constraint, region variants, liftover, ClinVar mirror variants, structural variants, mitochondrial variants, CADD variant/position/range scores, direct ClinVar search/accession/rsID records, and dbSNP rsID/region lookup.
+- Expanded Feynman Bio Tools with no-login BioMart support for Ensembl mart discovery, dataset listings, common attributes, filters, and constrained gene table retrieval through Feynman's built-in database search tool.
+- Expanded Feynman Bio Tools with no-login MetaboLights support for public metabolomics study metadata, MTBLS accessions, assay context, study-folder files, and public data-file listings.
+- Expanded Feynman Bio Tools with no-login UCSC Genome Browser support for assembly discovery, track search, chromosome sizes, bounded genomic region track rows, conservation score summaries, and ENCODE TFBS clusters.
+- Expanded Feynman Bio Tools with exact genome modes for Ensembl lookup, xrefs, VEP variant consequence summaries, homology, sequence, and overlap-region retrieval plus UCSC `ucsc_list_tracks`, `ucsc_chrom_sizes`, `ucsc_track_data`, `ucsc_conservation`, and `ucsc_tfbs_clusters` query names.
+- Expanded Feynman Bio Tools with no-login UniBind support for direct TF-DNA interaction dataset search, exact dataset model metadata, BED/FASTA/plot model links, and UCSC hub-backed TFBS region rows.
+- Expanded Feynman Bio Tools with Europe PMC open-access full-text section lookup for PMCID/PMID inputs, returning section inventories, bounded snippets, figure/table/reference counts, and explicit not-open-access or missing-full-text statuses without exposing raw XML.
+- Expanded Feynman Bio Tools with no-login ZINC support for purchasable compound lookup by ZINC ID, SMILES exact or analog search, supplier catalog-code resolution, random screening-set sampling, and 3D tranche repository locations.
+- Expanded Feynman Bio Tools with PubChem compound search/detail, SMILES similarity, bioassay summary, and GHS safety modes; ChEBI search/entity/ontology modes; BindingDB target-ligand and compound-target modes; and Rhea reaction search/detail modes.
+- Expanded Feynman Bio Tools with CIViC gene/variant/evidence/assertion/molecular-profile/disease/therapy modes, ClinGen validity/dosage/actionability/variant-classification modes, and Open Targets bounded GraphQL-compatible search plus disease-drug, disease-target, and drug wrapper modes.
+- Expanded Feynman Bio Tools with GTEx dataset, tissue-site, sample, gene-resolution, expression, top-expressed-gene, and eQTL modes plus exact PanglaoDB marker-gene, gene-to-cell-type, and options modes.
+- Expanded Feynman Bio Tools with exact genes/ontologies modes for MyGene query-many lookup, OLS ontology catalogue/search/term lookup, QuickGO GO annotations, UniProt TSV/FASTA/TXT entry retrieval, Reactome pathway mapping, and KEGG entry/search/link/ID-conversion workflows.
+- Expanded Feynman Bio Tools with no-login CellGuide support for Cell Ontology cell-type lookup, marker genes, tissue occurrence, and CELLxGENE source collections.
+- Expanded Feynman Bio Tools with no-login Antibody Registry support for antibody RRID search, catalog-number lookup, vendor filtering, registry stats, and per-antibody detail records.
+- Expanded Feynman Bio Tools with credential-aware OpenAlex support for scholarly work search, work detail, DOI claimant resolution, incoming citations, outgoing references, authors, sources/venues, OA status, and rate-limit diagnostics.
+- Expanded Feynman Bio Tools with cBioPortal cancer-model parity modes for study search/detail, clinical attributes, per-gene mutation rows, cross-study mutation frequency, and discrete CNA events, plus DepMap reference-name modes for model listing/detail/search, gene search, and CRISPR dependency rows.
+- Added native workbench previews for audio, video, XLSX spreadsheets, Jupyter notebooks, and LaTeX/TeX artifacts alongside the existing report, JSON, PDF, genome, alignment, molecule, structure, tree, and tensor viewers.
+
+### Website and Docs
+
+- Added workbench documentation to the website, command reference, setup guide, release notes, and README so the public product description matches the local workbench surface.
+- Corrected the npm install Node.js range in the website docs to match the package engine range.
+
 ## v0.3.5 - 2026-06-28
 
 ### Pi Runtime
