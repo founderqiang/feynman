@@ -26,6 +26,9 @@ test("React workbench source owns the project Files and artifact inspection surf
 	assert.match(reactShellSource, /function GeneratedArtifactsBlock/);
 	assert.match(reactShellSource, /className="generated-artifacts-grid"/);
 	assert.match(reactShellSource, /artifactTileDownloadUrl\(artifact\.path, clientToken\)/);
+	assert.match(reactShellSource, /validLinkedArtifact \? "files" : current === "files" \? null : current/);
+	assert.match(reactShellSource, /artifactPath \? "files" : current === "files" \? null : current/);
+	assert.doesNotMatch(reactShellSource, /nextArtifactPath \? "files"/);
 	assert.match(reactShellSource, /aria-label="Files overlay"/);
 	assert.match(reactShellSource, /Search files/);
 	assert.match(reactShellSource, /function fileHostsForState/);

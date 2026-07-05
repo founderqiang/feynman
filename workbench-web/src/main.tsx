@@ -979,7 +979,7 @@ function App() {
 			const nextArtifactPath = validLinkedArtifact ?? defaultArtifactPath;
 			setRoute(nextRoute);
 			setSelectedArtifactPath(nextArtifactPath);
-			setSidePanel((current) => nextArtifactPath ? "files" : current === "files" ? null : current);
+			setSidePanel((current) => validLinkedArtifact ? "files" : current === "files" ? null : current);
 			if (parsed && nextRoute && (!workbenchRoutesEqual(parsed, nextRoute) || Boolean(linkedArtifact && !validLinkedArtifact))) {
 				window.history.replaceState(null, "", projectPath(nextRoute.projectId, nextRoute.runSlug, validLinkedArtifact));
 			}
@@ -1019,13 +1019,8 @@ function App() {
 				const nextArtifactPath = validLinkedArtifact ?? defaultArtifactPath;
 				setData(state);
 				setRoute(nextRoute);
-				if (nextArtifactPath) {
-					setSelectedArtifactPath(nextArtifactPath);
-					setSidePanel("files");
-				} else {
-					setSelectedArtifactPath(null);
-					setSidePanel((current) => current === "files" ? null : current);
-				}
+				setSelectedArtifactPath(nextArtifactPath);
+				setSidePanel((current) => validLinkedArtifact ? "files" : current === "files" ? null : current);
 				if (parsed && (!workbenchRoutesEqual(parsed, nextRoute) || Boolean(linkedArtifact && !validLinkedArtifact))) {
 					window.history.replaceState(null, "", projectPath(nextRoute.projectId, nextRoute.runSlug, validLinkedArtifact));
 				}
@@ -1238,7 +1233,7 @@ function App() {
 		setMediaAnnotationDraft(null);
 		setVersionDiffs({});
 		setVersionStatuses({});
-		setSidePanel((current) => defaultArtifactPath ? "files" : current === "files" ? null : current);
+		setSidePanel((current) => current === "files" ? null : current);
 		window.history.pushState(null, "", projectPath(nextRoute.projectId, nextRoute.runSlug));
 	}
 
@@ -1261,7 +1256,7 @@ function App() {
 		setVersionDiffs({});
 		setVersionStatuses({});
 		setFilesOverlayOpen(false);
-		setSidePanel((current) => selectedPath ? "files" : current === "files" ? null : current);
+		setSidePanel((current) => artifactPath ? "files" : current === "files" ? null : current);
 		window.history.pushState(null, "", projectPath(nextRoute.projectId, nextRoute.runSlug, artifactPath));
 	}
 
