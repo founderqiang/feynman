@@ -4,6 +4,13 @@ Workspace lab notebook for long-running or resumable research work.
 
 Use this file to track chronology, not release notes. Keep entries short, factual, and operational.
 
+### 2026-07-06 EDT — workbench-center-tab-strip-parity
+
+- Objective: Finish the in-flight Claude Science parity slice that adds a Chat/Files tab strip to the workbench frame center pane, so Files can open in-place instead of only as a right-side panel.
+- Changed: Added a `CenterPane` state (`chat` | `files`) and a `.workspace-tab-strip` nav under the frame header; the transcript+composer render only on the Chat tab, and the existing `FilesPanel` (factored out once as `filesPanelElement` and reused by the side panel) mounts in a `.center-files-panel` on the Files tab. Rail Files button and the files toggle now switch the center pane. New session / run navigation resets the pane to Chat.
+- Verified: Full `npm test` (`585/585`) under Node 24; typecheck and `build:workbench-web` green; live headless render on `/projects/workspace/frames/playwright` confirmed both tabs present, Files tab shows the center files panel and hides the composer, Chat tab restores it, zero console errors.
+- Next: Continue the visual 1:1 parity pass against the installed Claude Science app.
+
 ### 2026-07-06 12:44 EDT — check-new-issues-clean-main
 
 - Objective: Run the recurring Feynman intake sweep against live GitHub issues, PRs, contributor branches, recent main workflows, release/npm state, package freshness, and repo-local validation while preserving active worktree edits.

@@ -25,6 +25,11 @@ test("React workbench source owns the project Files and artifact inspection surf
 	assert.match(reactShellSource, /className="files-overlay-react"/);
 	assert.match(reactShellSource, /function GeneratedArtifactsBlock/);
 	assert.match(reactShellSource, /className="generated-artifacts-grid"/);
+	assert.match(reactShellSource, /type CenterPane = "chat" \| "files"/);
+	assert.match(reactShellSource, /const \[centerPane, setCenterPane\] = useState<CenterPane>\("chat"\)/);
+	assert.match(reactShellSource, /className="workspace-tab-strip"/);
+	assert.match(reactShellSource, /className="center-files-panel"/);
+	assert.match(reactShellSource, /sidePanel === "files" \? \(\s*filesPanelElement/);
 	assert.match(reactShellSource, /artifactTileDownloadUrl\(artifact\.path, clientToken\)/);
 	assert.match(reactShellSource, /validLinkedArtifact \? "files" : current === "files" \? null : current/);
 	assert.match(reactShellSource, /artifactPath \? "files" : current === "files" \? null : current/);
@@ -239,6 +244,8 @@ test("React workbench source owns chat activity, notebook, compute, and connecto
 	assert.match(reactShellStyles, /\.transcript-annotation-row/);
 	assert.match(reactShellStyles, /\.topbar-menu-panel/);
 	assert.match(reactShellStyles, /\.topbar-menu-grid/);
+	assert.match(reactShellStyles, /\.workspace-tab-strip/);
+	assert.match(reactShellStyles, /\.center-files-panel \.files-panel/);
 	assert.match(reactShellStyles, /\.composer-menu/);
 	assert.match(reactShellStyles, /\.composer\s*\{[\s\S]*?align-self: end;/);
 	assert.match(reactShellStyles, /\.composer\s*\{[\s\S]*?background: #181d17;/);

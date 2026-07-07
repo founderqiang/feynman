@@ -313,7 +313,7 @@ button {
 .conversation {
 	display: grid;
 	grid-template-columns: minmax(0, 1fr);
-	grid-template-rows: auto auto minmax(0, 1fr) auto;
+	grid-template-rows: auto auto auto minmax(0, 1fr) auto;
 	width: 100%;
 	min-width: 0;
 	max-width: 100%;
@@ -488,6 +488,61 @@ button {
 	text-align: center;
 }
 
+.workspace-tab-strip {
+	display: flex;
+	align-items: center;
+	gap: 5px;
+	min-width: 0;
+	padding: 0 74px 12px;
+	border-bottom: 1px solid #30382e;
+	background: #20251f;
+	overflow: auto hidden;
+	scrollbar-width: thin;
+}
+
+.workspace-tab-strip button {
+	display: inline-flex;
+	align-items: center;
+	gap: 7px;
+	max-width: 220px;
+	min-height: 30px;
+	flex: 0 0 auto;
+	border: 1px solid transparent;
+	border-radius: 5px;
+	padding: 0 10px;
+	font-size: 12px;
+	font-weight: 640;
+	color: #9fa99a;
+	background: transparent;
+}
+
+.workspace-tab-strip button:hover {
+	color: #edf4e8;
+	background: #252d23;
+}
+
+.workspace-tab-strip button.active {
+	border-color: #3a4237;
+	color: #edf4e8;
+	background: #181d17;
+}
+
+.workspace-tab-strip span {
+	min-width: 0;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+
+.workspace-tab-strip small {
+	min-width: 18px;
+	border-radius: 999px;
+	padding: 1px 6px;
+	font-size: 10px;
+	color: #c4cfbb;
+	background: #2a3328;
+}
+
 .topbar-status span,
 .context-strip div {
 	border-radius: 999px;
@@ -532,6 +587,78 @@ button {
 	padding: 24px;
 	overflow: hidden auto;
 	scrollbar-width: thin;
+}
+
+.center-files-panel {
+	min-width: 0;
+	min-height: 0;
+	padding: 18px 24px 24px;
+	overflow: hidden;
+}
+
+.center-files-panel .files-panel {
+	height: 100%;
+	min-height: 0;
+	border: 1px solid #343c32;
+	border-radius: 8px;
+	background: #181d17;
+	color: #edf4e8;
+}
+
+.center-files-panel .files-toolbar button,
+.center-files-panel .file-host-strip button,
+.center-files-panel .file-scope-tabs button,
+.center-files-panel .file-category-strip button {
+	color: #dce8d4;
+	background: #252d23;
+}
+
+.center-files-panel .files-toolbar button:hover,
+.center-files-panel .file-host-strip button:hover,
+.center-files-panel .file-scope-tabs button:hover,
+.center-files-panel .file-category-strip button:hover {
+	color: #f8fbf2;
+	background: #303a2d;
+}
+
+.center-files-panel .file-host-strip button.active,
+.center-files-panel .file-scope-tabs button.active,
+.center-files-panel .file-category-strip button.active {
+	color: #f8fbf2;
+	background: #2f6a3d;
+}
+
+.center-files-panel .search-box {
+	border-color: #343c32;
+	background: #20251f;
+	color: #98a38f;
+}
+
+.center-files-panel .search-box input {
+	color: #edf4e8;
+}
+
+.center-files-panel .artifact-row,
+.center-files-panel .upload-row {
+	border-color: #343c32;
+	background: #20251f;
+	color: #edf4e8;
+}
+
+.center-files-panel .artifact-row:hover,
+.center-files-panel .artifact-row.selected,
+.center-files-panel .upload-row:hover,
+.center-files-panel .upload-row.selected {
+	border-color: #607158;
+	background: #222a21;
+}
+
+.center-files-panel .artifact-row small,
+.center-files-panel .upload-row small,
+.center-files-panel .file-host-status,
+.center-files-panel .upload-section-label,
+.center-files-panel .panel-empty {
+	color: #98a38f;
 }
 
 .message {

@@ -21,6 +21,7 @@ import {
 	Image as ImageIcon,
 	Layers,
 	Link,
+	MessageSquare,
 	Pencil,
 	PanelLeft,
 	PanelRightOpen,
@@ -234,6 +235,7 @@ import "react-json-view-lite/dist/index.css";
 import "./styles.css";
 
 type SidePanel = "compute" | "customize" | "files" | "memory" | "notebook" | null;
+type CenterPane = "chat" | "files";
 
 type ViewerStatus = {
 	state: "error" | "loading" | "ready";
@@ -933,6 +935,7 @@ function App() {
 	const [fileScope, setFileScope] = useState<FileBrowserScope>("run");
 	const [fileCategory, setFileCategory] = useState<FileCategoryFilter>("all");
 	const [fileHostId, setFileHostId] = useState("local");
+	const [centerPane, setCenterPane] = useState<CenterPane>("chat");
 	const [sidePanel, setSidePanel] = useState<SidePanel>(() => defaultSidePanel());
 	const [filesOverlayOpen, setFilesOverlayOpen] = useState(false);
 	const [selectedUploadId, setSelectedUploadId] = useState<string | null>(null);
@@ -1236,6 +1239,7 @@ function App() {
 		setMediaAnnotationDraft(null);
 		setVersionDiffs({});
 		setVersionStatuses({});
+		setCenterPane("chat");
 		setSidePanel((current) => current === "files" ? null : current);
 		window.history.pushState(null, "", projectPath(nextRoute.projectId, nextRoute.runSlug));
 	}
@@ -1259,6 +1263,7 @@ function App() {
 		setVersionDiffs({});
 		setVersionStatuses({});
 		setFilesOverlayOpen(false);
+		setCenterPane("chat");
 		setSidePanel((current) => artifactPath ? "files" : current === "files" ? null : current);
 		window.history.pushState(null, "", projectPath(nextRoute.projectId, nextRoute.runSlug, artifactPath));
 	}
@@ -2040,6 +2045,7 @@ function App() {
 		setArtifactRefinement(null);
 		setMediaAnnotationModePath(null);
 		setMediaAnnotationDraft(null);
+		setCenterPane("files");
 		setSidePanel("files");
 		setFilesOverlayOpen(false);
 		setStatus(nextStatus);
@@ -2756,6 +2762,60 @@ function App() {
 	} satisfies ArtifactActionControls;
 	const sessionConfig = session?.config;
 	const selectedModel = sessionConfig?.model ?? "";
+	const filesPanelElement = (
+		<FilesPanel
+			actions={artifactActionControls}
+			artifacts={filteredArtifacts}
+			artifactTab={artifactTab}
+			category={fileCategory}
+			categoryCounts={fileCategoryCounts}
+			editState={artifactEdit}
+			filePreview={filePreview}
+			filteredUploads={filteredUploads}
+			hostId={fileHostId}
+			hosts={fileHosts}
+			scope={fileScope}
+			scopeCounts={fileScopeCountItems}
+			query={query}
+			refinement={artifactRefinementControls}
+			selectedArtifact={selectedArtifact}
+			selectedPlan={selectedPlan}
+			selectedPath={selectedArtifactPath}
+			selectedUpload={selectedUpload}
+			state={data}
+			uploading={uploading}
+			versionDiffs={versionDiffs}
+			versionStatuses={versionStatuses}
+			onArtifactTab={setArtifactTab}
+			onCategory={setFileCategory}
+			onEditCancel={() => setArtifactEdit(null)}
+			onEditDraft={(draft) => setArtifactEdit((current) => current ? { ...current, draft, status: "Unsaved changes" } : current)}
+			onEditOpen={(artifact) => void openArtifactEditor(artifact)}
+			onEditSave={() => void saveArtifactEditor()}
+			onMoleculeSave={(artifact, content) => saveMoleculeArtifact(artifact, content)}
+			onHost={setFileHostId}
+			onImport={() => fileInputRef.current?.click()}
+			onOpenOverlay={() => setFilesOverlayOpen(true)}
+			onPlanAction={(plan, action) => void updateWorkbenchPlanActionFromPreview(plan, action)}
+			onPlanStep={(plan, stepTitle, stepStatus) => void updateWorkbenchPlanStepFromPreview(plan, stepTitle, stepStatus)}
+			onQuery={setQuery}
+			onSelect={(path) => {
+				setSelectedArtifactPath(path);
+				setSelectedUploadId(null);
+				setArtifactTab("preview");
+			}}
+			onScope={setFileScope}
+			onUploadDownloadUrl={uploadDownloadUrl}
+			onUploadRemove={(uploadId) => void removeUpload(uploadId)}
+			onUploadSelect={(uploadId) => {
+				setSelectedUploadId(uploadId);
+				setSelectedArtifactPath(null);
+				setArtifactEdit(null);
+			}}
+			onVersionDiff={(version) => void diffArtifactVersion(version)}
+			onVersionRestore={(version) => void restoreArtifactVersion(version)}
+		/>
+	);
 
 	return (
 		<div className={cx("app-shell", sidePanel && "has-side-panel", scienceArtifactPanelOpen && "science-artifact-open")}>
@@ -2839,7 +2899,7 @@ function App() {
 						type="button"
 						className="rail-icon-button"
 						aria-label="Toggle files pane"
-						onClick={() => setSidePanel(sidePanel === "files" ? null : "files")}
+						onClick={() => setCenterPane((current) => current === "files" ? "chat" : "files")}
 					>
 						<PanelLeft size={22} aria-hidden />
 					</button>
@@ -2854,7 +2914,7 @@ function App() {
 						<Settings size={16} aria-hidden />
 						<span>Customize</span>
 					</button>
-					<button type="button" onClick={() => setSidePanel(sidePanel === "files" ? null : "files")}>
+					<button type="button" onClick={() => setCenterPane("files")}>
 						<FolderOpen size={16} aria-hidden />
 						<span>Files</span>
 					</button>
@@ -3043,6 +3103,28 @@ function App() {
 					</div>
 				</header>
 
+				<nav className="workspace-tab-strip" aria-label="Workspace views">
+					<button
+						type="button"
+						className={cx(centerPane === "chat" && "active")}
+						aria-current={centerPane === "chat" ? "page" : undefined}
+						onClick={() => setCenterPane("chat")}
+					>
+						<MessageSquare size={13} aria-hidden />
+						<span>{run?.title ?? "Chat"}</span>
+					</button>
+					<button
+						type="button"
+						className={cx(centerPane === "files" && "active")}
+						aria-current={centerPane === "files" ? "page" : undefined}
+						onClick={() => setCenterPane("files")}
+					>
+						<FolderOpen size={13} aria-hidden />
+						<span>Files</span>
+						<small>{filteredArtifacts.length + filteredUploads.length}</small>
+					</button>
+				</nav>
+
 				<section className="context-strip" aria-label="Run context">
 					<div>
 						<span className="metric-label">Artifacts</span>
@@ -3061,92 +3143,99 @@ function App() {
 					</button>
 				</section>
 
-				<section className="transcript" aria-label="Chat transcript">
-					{session?.messages.length ? (
-						session.messages.map((chatMessage, messageIndex) => {
-							const rootFrameId = session?.id ?? run?.slug;
-							const transcriptAnnotations = transcriptAnnotationsForMessage(data.transcriptAnnotations ?? [], rootFrameId, chatMessage.id, messageIndex);
-							return (
-								<article key={chatMessage.id} className={cx("message", chatMessage.role)} data-transcript-message-id={chatMessage.id}>
-									<div className="message-icon">
-										{chatMessage.role === "assistant" ? <Bot size={16} aria-hidden /> : <span>{chatMessage.role === "user" ? "U" : "S"}</span>}
-									</div>
-									<div className="message-body">
-										<div className="message-meta">
-											<span>{chatMessage.role === "assistant" ? "Feynman" : chatMessage.role}</span>
-											<span className="message-meta-actions">
-												{transcriptAnnotations.length ? <span>{transcriptAnnotations.length} bookmark{transcriptAnnotations.length === 1 ? "" : "s"}</span> : null}
-												<button
-													type="button"
-													aria-label="Bookmark transcript message"
-													title="Bookmark transcript message"
-													disabled={transcriptAnnotationBusyId === chatMessage.id}
-													onClick={() => void saveTranscriptAnnotation(chatMessage, messageIndex)}
-												>
-													<BookOpen size={13} aria-hidden />
-												</button>
-												<span>{chatMessage.status}</span>
-											</span>
+				{centerPane === "chat" ? (
+					<section className="transcript" aria-label="Chat transcript">
+						{session?.messages.length ? (
+							session.messages.map((chatMessage, messageIndex) => {
+								const rootFrameId = session?.id ?? run?.slug;
+								const transcriptAnnotations = transcriptAnnotationsForMessage(data.transcriptAnnotations ?? [], rootFrameId, chatMessage.id, messageIndex);
+								return (
+									<article key={chatMessage.id} className={cx("message", chatMessage.role)} data-transcript-message-id={chatMessage.id}>
+										<div className="message-icon">
+											{chatMessage.role === "assistant" ? <Bot size={16} aria-hidden /> : <span>{chatMessage.role === "user" ? "U" : "S"}</span>}
 										</div>
-										<p data-transcript-content>{chatMessage.content || "No content recorded yet."}</p>
-										{transcriptAnnotations.length ? (
-											<div className="transcript-annotations" data-testid="transcript-annotations">
-												{transcriptAnnotations.map((annotation) => (
-													<div className="transcript-annotation-row" key={annotation.id}>
-														<div>
-															<strong>{annotation.kind === "bookmark" ? "Bookmark" : "Note"} / message {annotation.messageIndex + 1}</strong>
-															<span>{annotation.source}{annotation.toolName ? ` / ${annotation.toolName}` : ""}</span>
-														</div>
-														<blockquote>{annotation.anchorText}</blockquote>
-														{annotation.note ? <p>{annotation.note}</p> : null}
-														<div className="transcript-annotation-actions">
-															<button type="button" onClick={() => useTranscriptAnnotationInChat(annotation)}>
-																<Send size={12} aria-hidden />
-																<span>Use in chat</span>
-															</button>
-															<button
-																type="button"
-																disabled={transcriptAnnotationBusyId === annotation.id}
-																onClick={() => void removeTranscriptAnnotation(annotation.id)}
-															>
-																<Trash2 size={12} aria-hidden />
-																<span>Remove</span>
-															</button>
-														</div>
-													</div>
-												))}
+										<div className="message-body">
+											<div className="message-meta">
+												<span>{chatMessage.role === "assistant" ? "Feynman" : chatMessage.role}</span>
+												<span className="message-meta-actions">
+													{transcriptAnnotations.length ? <span>{transcriptAnnotations.length} bookmark{transcriptAnnotations.length === 1 ? "" : "s"}</span> : null}
+													<button
+														type="button"
+														aria-label="Bookmark transcript message"
+														title="Bookmark transcript message"
+														disabled={transcriptAnnotationBusyId === chatMessage.id}
+														onClick={() => void saveTranscriptAnnotation(chatMessage, messageIndex)}
+													>
+														<BookOpen size={13} aria-hidden />
+													</button>
+													<span>{chatMessage.status}</span>
+												</span>
 											</div>
-										) : null}
-										<ToolEvents
-											events={chatMessage.toolEvents}
-											groups={data?.resources ?? []}
-											onOpenPermissions={() => setSidePanel("customize")}
-											onPermissionDecision={(approval, decision, target) => void updateConnectorApproval(approval, decision, target)}
-											onRetryApproval={(activity) => void retryApprovedConnectorCall(activity)}
-										/>
-									</div>
-								</article>
-							);
-						})
-					) : (
-						runArtifacts.length ? (
-							<GeneratedArtifactsBlock
-								artifacts={runArtifacts}
-								clientToken={clientToken}
-								onSelect={(artifact) => openArtifactPath(artifact.path, "Showing artifact")}
-							/>
+											<p data-transcript-content>{chatMessage.content || "No content recorded yet."}</p>
+											{transcriptAnnotations.length ? (
+												<div className="transcript-annotations" data-testid="transcript-annotations">
+													{transcriptAnnotations.map((annotation) => (
+														<div className="transcript-annotation-row" key={annotation.id}>
+															<div>
+																<strong>{annotation.kind === "bookmark" ? "Bookmark" : "Note"} / message {annotation.messageIndex + 1}</strong>
+																<span>{annotation.source}{annotation.toolName ? ` / ${annotation.toolName}` : ""}</span>
+															</div>
+															<blockquote>{annotation.anchorText}</blockquote>
+															{annotation.note ? <p>{annotation.note}</p> : null}
+															<div className="transcript-annotation-actions">
+																<button type="button" onClick={() => useTranscriptAnnotationInChat(annotation)}>
+																	<Send size={12} aria-hidden />
+																	<span>Use in chat</span>
+																</button>
+																<button
+																	type="button"
+																	disabled={transcriptAnnotationBusyId === annotation.id}
+																	onClick={() => void removeTranscriptAnnotation(annotation.id)}
+																>
+																	<Trash2 size={12} aria-hidden />
+																	<span>Remove</span>
+																</button>
+															</div>
+														</div>
+													))}
+												</div>
+											) : null}
+											<ToolEvents
+												events={chatMessage.toolEvents}
+												groups={data?.resources ?? []}
+												onOpenPermissions={() => setSidePanel("customize")}
+												onPermissionDecision={(approval, decision, target) => void updateConnectorApproval(approval, decision, target)}
+												onRetryApproval={(activity) => void retryApprovedConnectorCall(activity)}
+											/>
+										</div>
+									</article>
+								);
+							})
 						) : (
-							<div className="empty-state">
-								<Bot size={18} aria-hidden />
-								<h2>Ask Feynman to research, verify, reproduce, or synthesize.</h2>
-								<p>The chat is attached to this project, its files, Pi subagents, compute records, and provenance state.</p>
-							</div>
-						)
-					)}
-					{error ? <div className="inline-error">{error}</div> : null}
-				</section>
+							runArtifacts.length ? (
+								<GeneratedArtifactsBlock
+									artifacts={runArtifacts}
+									clientToken={clientToken}
+									onSelect={(artifact) => openArtifactPath(artifact.path, "Showing artifact")}
+								/>
+							) : (
+								<div className="empty-state">
+									<Bot size={18} aria-hidden />
+									<h2>Ask Feynman to research, verify, reproduce, or synthesize.</h2>
+									<p>The chat is attached to this project, its files, Pi subagents, compute records, and provenance state.</p>
+								</div>
+							)
+						)}
+						{error ? <div className="inline-error">{error}</div> : null}
+					</section>
+				) : (
+					<section className="center-files-panel" aria-label="Workspace files">
+						{filesPanelElement}
+					</section>
+				)}
 
-				<form className="composer" onSubmit={sendMessage}>
+				{centerPane === "chat" ? (
+					<form className="composer" onSubmit={sendMessage}>
 					<div className="composer-tools">
 						<div className="composer-action-menu">
 							<button
@@ -3252,7 +3341,8 @@ function App() {
 						<Send size={16} aria-hidden />
 						</button>
 					)}
-				</form>
+					</form>
+				) : null}
 			</main>
 
 			{sidePanel ? (
@@ -3267,58 +3357,7 @@ function App() {
 						</button>
 					</header>
 					{sidePanel === "files" ? (
-							<FilesPanel
-								actions={artifactActionControls}
-								artifacts={filteredArtifacts}
-									artifactTab={artifactTab}
-									category={fileCategory}
-									categoryCounts={fileCategoryCounts}
-									editState={artifactEdit}
-									filePreview={filePreview}
-									filteredUploads={filteredUploads}
-									hostId={fileHostId}
-									hosts={fileHosts}
-									scope={fileScope}
-									scopeCounts={fileScopeCountItems}
-								query={query}
-								refinement={artifactRefinementControls}
-								selectedArtifact={selectedArtifact}
-								selectedPlan={selectedPlan}
-								selectedPath={selectedArtifactPath}
-									selectedUpload={selectedUpload}
-									state={data}
-									uploading={uploading}
-									versionDiffs={versionDiffs}
-									versionStatuses={versionStatuses}
-									onArtifactTab={setArtifactTab}
-									onCategory={setFileCategory}
-									onEditCancel={() => setArtifactEdit(null)}
-									onEditDraft={(draft) => setArtifactEdit((current) => current ? { ...current, draft, status: "Unsaved changes" } : current)}
-									onEditOpen={(artifact) => void openArtifactEditor(artifact)}
-									onEditSave={() => void saveArtifactEditor()}
-									onMoleculeSave={(artifact, content) => saveMoleculeArtifact(artifact, content)}
-									onHost={setFileHostId}
-									onImport={() => fileInputRef.current?.click()}
-									onOpenOverlay={() => setFilesOverlayOpen(true)}
-									onPlanAction={(plan, action) => void updateWorkbenchPlanActionFromPreview(plan, action)}
-									onPlanStep={(plan, stepTitle, stepStatus) => void updateWorkbenchPlanStepFromPreview(plan, stepTitle, stepStatus)}
-									onQuery={setQuery}
-									onSelect={(path) => {
-										setSelectedArtifactPath(path);
-										setSelectedUploadId(null);
-										setArtifactTab("preview");
-									}}
-									onScope={setFileScope}
-									onUploadDownloadUrl={uploadDownloadUrl}
-									onUploadRemove={(uploadId) => void removeUpload(uploadId)}
-									onUploadSelect={(uploadId) => {
-										setSelectedUploadId(uploadId);
-										setSelectedArtifactPath(null);
-										setArtifactEdit(null);
-									}}
-									onVersionDiff={(version) => void diffArtifactVersion(version)}
-									onVersionRestore={(version) => void restoreArtifactVersion(version)}
-								/>
+						filesPanelElement
 					) : sidePanel === "notebook" ? (
 						<NotebookPanel
 							code={notebookCode}
